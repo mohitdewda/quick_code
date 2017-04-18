@@ -1,0 +1,49 @@
+$('#add_job').on('submit', function(e){
+	e.preventDefault();
+	var form = new FormData($(this)[0]);
+	$.ajax({
+		url: '<?=site_url();?>Front_panel/post_jobcart',
+		data: form,
+		processData:false,
+		contentType:false,
+		type:'POST',
+		cache:false,
+		beforeSend:function(){
+			$('body').append('<div class="overlay"><img src="<?=base_url();?>/assets/front/images/loader.svg" /></div>');
+			$('.remove_val').remove();
+		},
+		success:function(response){
+			var response = $.parseJSON(response);
+			if(response.status ==  true){
+				
+				swal({
+				  title: "Great!",
+				  text: response.message,
+				  html: true,
+				  type: 'success'
+				});	
+				setTimeout(function() {
+					window.location.replace('<?=site_url();?>/Front_panel/select_service/'+response.data.last_id);
+				}, 2000);
+				
+			}else{
+				$('.remove_val').remove();
+				if(response.data != ''){
+					var errors = response.data;
+					$.each(errors, function(key, value){
+						$('#'+key).closest('div').append('<div class="text text-danger remove_val">'+value+'</div>');
+					});
+				}
+				swal({
+				  title: "Error!",
+				  text: response.message,
+				  html: true,
+				  type: 'error'
+				});		
+			}
+		},
+		complete:function(response){
+			$('.overlay').remove();
+		}
+	});
+});

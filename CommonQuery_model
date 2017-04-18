@@ -1,0 +1,66 @@
+<?php
+
+Class CommonModel_ext extends CI_Model {
+
+	/**
+	*	Select data with params
+	*
+	*	@params string $table, array $where (optional)
+	*	@return mixed
+	*/
+	public function select_data($table, $where = null, $option = null, $data = null,$limit = null){
+		if($option == 'custom'){
+			return  $this->db->query($data)->result();
+			exit;
+		}
+		$this->db->from($table);
+			if($where != null){
+				$this->db->where($where);
+			}
+			if($limit != null){
+				$this->db->limit($limit); 
+			}		
+			
+		return $this->db->get()->result();
+	}
+	 
+	/**
+	*	Insert data with params
+	*
+	*	@params string $table, array $data
+	*	@params string $return_last_id (optional)
+	*	@return mixed
+	*/
+	public function insert_data($table, $data, $return_last_id = null){
+		$this->db->insert($table, $data);
+		
+		if($return_last_id != null){
+			return $this->db->affected_rows() > 0 ? $this->db->insert_id() : false;
+		}
+		return $this->db->affected_rows() > 0 ? true : false;
+	}
+	
+	/**
+	*	Updates data with paramters
+	*
+	*	@params string var table, array var where, array var data
+	*	@params array var options (optional)
+	*	@return boolean
+	*/
+	public function update_data($table, $where, $data, $options = null){
+		$this->db->update($table, $data, $where);
+		return $this->db->affected_rows() > 0 ? true : false;
+	}
+
+	/**
+	*	Deletes data with param
+	*
+	*	@params string var table, array var where, 
+	*	@return boolean
+	*/
+	public function delete($table, $where){
+		$this->db->delete($table, $where);
+		return $this->db->affected_rows() > 0 ? true : false;
+	}
+}
+	

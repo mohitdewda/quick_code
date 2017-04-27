@@ -1,0 +1,9 @@
+$sessiondata = array(
+					'token' => $this->encryption->encrypt($single->id),
+					'username' => $single->firstname . " " . $single->lastname,
+					'usertype' => $single->usertype,
+					'logged_in' => 1
+				);
+				
+				
+				$this->session->set_userdata('loggedInUserData', $sessiondata);

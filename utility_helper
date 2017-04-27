@@ -1,0 +1,93 @@
+<?php 
+
+	/*
+	Created By RB
+	*/	
+	function time_just_ago($datetime, $full = false) {
+		$now = new DateTime;
+		$ago = new DateTime($datetime);
+		$diff = $now->diff($ago);
+
+		$diff->w = floor($diff->d / 7);
+		$diff->d -= $diff->w * 7;
+
+		$string = array(
+			'y' => 'year',
+			'm' => 'month',
+			'w' => 'week',
+			'd' => 'day',
+			'h' => 'hour',
+			'i' => 'minute',
+			's' => 'second',
+		);
+		foreach ($string as $k => &$v) {
+			if ($diff->$k) {
+				$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
+			} else {
+				unset($string[$k]);
+			}
+		}
+
+		if (!$full) $string = array_slice($string, 0, 1);
+		return $string ? implode(', ', $string) . ' ago' : 'just now';
+	}
+
+	/**
+	*		Gives current time in UTC time zone
+	*	
+	*		@return string
+	*/
+	function time_now(){
+		date_default_timezone_set('UTC');
+		return gmdate("Y-m-d H:i:s", time());
+	}
+
+	/**
+	*		Gives time difference in hours and minutes
+	*	
+	*		@params var DATETIME start, var DATETIME end
+	*		@return string
+	*/
+	function time_difference($start, $end, $type = null){
+		$start = strtotime($start);
+		$end = strtotime($end);
+		$difference = $end - $start;
+
+		$years = abs(floor($difference / 31536000));
+		$days = abs(floor(($difference-($years * 31536000))/86400));
+		$hours = abs(floor(($difference-($years * 31536000)-($days * 86400))/3600));
+		$mins = abs(floor(($difference-($years * 31536000)-($days * 86400)-($hours * 3600))/60));#floor($difference / 60);
+		if($type == 'int'){
+			return $hours*60+$mins;
+		}
+		return $hours . " Hours, " . $mins . " Minutes";
+		
+		//in controller: $value = time_difference($start, $end);
+	}
+
+	/**
+	*		Gives time difference in minutes
+	*	
+	*		@params var DATETIME start, var DATETIME end
+	*		@return string
+	*/
+	function time_diff_minutes($start, $end, $type = null){
+		$to_time = strtotime($end);
+		$from_time = strtotime($start);
+		if($type == 'int'){
+			return round(abs($to_time - $from_time) / 60);
+
+		}
+		return round(abs($to_time - $from_time) / 60,2). " minute";
+	}
+
+	function image_helper($image){
+		if($image == ''){
+			$url = base_url().'files/user_profile/default.png';
+		}else{
+			$url = base_url().'files/user_profile/'.$image;
+		}
+		return $url;
+	}
+
+?>

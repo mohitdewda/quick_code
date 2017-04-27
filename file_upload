@@ -1,0 +1,32 @@
+public function add_blog(){
+   
+  if($_FILES['userfile']['name']!=''){
+   
+  $config['upload_path']   = FCPATH.'/files/'; 
+  $config['allowed_types'] = 'gif|jpg|png'; 
+  $config['max_size']      = 100; 
+  $config['max_width']     = 1024; 
+  $config['max_height']    = 768;  
+  $this->load->library('upload', $config);
+  
+  
+  if ( ! $this->upload->do_upload('userfile')) {
+     $error = array('userfile' => $this->upload->display_errors());
+     $this->load->view('Add_blog', $error);
+
+   } else {
+    $uesrImageUpload = $this->upload->data();
+    $userimageFile = $uesrImageUpload['file_name'];
+   }
+  }
+  else{
+   $userimageFile ='';
+  }
+   
+  $data=array('name'=>$this->input->post('name'),
+  'file'=>$userimageFile,
+
+  );
+  $this->load->model('CommModel');
+  $this->CommModel->insert($data);
+   }

@@ -1,0 +1,38 @@
+<?php
+	include('config_category.php');
+	$array1 = array();
+	$array2 = array();
+	$post_status = "publish";
+	
+	$result = mysql_query("SELECT * FROM wpig_terms");
+	while($row = mysql_fetch_array($result)) 
+	{
+		$id = $row['term_id'];
+		$list = array();
+		$list = getdoctorid( $id );
+		$array2[] = $list;
+	}
+	$array1['status'] = "success";
+	$array1['data'] = $array2;
+	echo json_encode($array1);
+	
+?>
+
+<?php
+include'connection.php';	
+	
+	
+	
+	function getdoctorid( $id ) {		
+		$returnvalue = array();
+		$result = mysql_query("SELECT * FROM wpig_terms WHERE term_id = '$id'");
+		if($row = mysql_fetch_array($result)) {
+			
+			$returnvalue['id'] = $row['term_id'];
+			$returnvalue['name'] = $row['name'];
+			$returnvalue['slug'] = $row['slug'];	
+			
+		}
+		return $returnvalue;
+	}
+	?>

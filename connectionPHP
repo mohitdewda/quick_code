@@ -1,0 +1,10 @@
+<?php
+
+$conn = mysql_connect("localhost","root","");
+if (!$conn) 
+{
+    die("Connection failed: Please check the Database Configuration!");
+}
+mysql_select_db("appfrees_wp716");
+
+?>

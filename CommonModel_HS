@@ -1,0 +1,54 @@
+<?php
+
+Class CommonModel extends CI_Model{
+	
+	private static $_time_now = null;
+	
+	public function __construct()
+	{		
+		self::$_time_now = time();
+				
+	}	
+	public function insert_data($table_name, $data)
+	{	
+		$data['create_time'] = self::$_time_now;
+		$ret = $this->db->insert($table_name, $data);
+		
+		if($this->db->affected_rows() > 0){
+			return $this->db->insert_id();
+		}else{
+			return false;
+		}
+		
+	}	
+	public function select_data($table_name, $where = null, $options = null){
+		$this->db->from($table_name);
+			if($where != null){
+				$this->db->where($where);
+			}
+		return $this->db->get()->result();
+				
+	}
+	
+	public function update_data($table, $where, $data, $options = null){
+		$data['update_time'] = self::$_time_now;
+		$this->db->update($table, $data, $where);
+		
+		if($this->db->affected_rows() > 0){
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
+	public function delete_data($table, $where, $options = null){		
+		$this->db->delete($table, $where);		
+		if($this->db->affected_rows() > 0){
+			return true;
+		}else{
+			return false;
+		}
+	}
+		
+	
+}

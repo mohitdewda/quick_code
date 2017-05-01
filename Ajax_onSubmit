@@ -47,3 +47,31 @@ $('#add_job').on('submit', function(e){
 		}
 	});
 });
+
+// by append value in form
+	var view_mechanic = function(id,usertype){
+		var form = new FormData();
+		form.append('mechanic_id', id);
+		form.append('usertype', usertype);
+		$.ajax({
+			url: '<?=site_url();?>Mechanics/load_modal/mechnic_details',
+			data: form,
+			type:"POST",
+			contentType: false,
+			processData:false,
+			cache: false,
+			beforeSend:function(){	
+				$('body').append('<div class="overlay"><img src="<?=base_url();?>/assets/front/images/loader.svg" /></div>');	
+			},
+			success:function(response){
+				$('#myModal').remove();
+				//var data = $.parseJSON(response);
+				//console.log(response);
+				$('body').append(response);
+				$('#myModal').modal('show');
+			}, 
+			    complete:function(){
+				  $('.overlay').remove();
+				}
+		});
+	}

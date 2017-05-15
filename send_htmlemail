@@ -1,0 +1,15 @@
+$html = $this->load->view('email_templates/'.$email_type, $data, true);
+		
+		// To send HTML mail, the Content-type header must be set
+		$headers[] = 'MIME-Version: 1.0';
+		$headers[] = 'Content-type: text/html; charset=iso-8859-1';
+
+
+		$from = 'donotreply@'.$_SERVER['SERVER_NAME'].'.com';
+		// Additional headers
+		$headers[] = 'From: Workshopza <'.$from.'>';
+		if($_SERVER['HTTP_HOST'] == 'localhost'){
+			return false;																																									
+		}else{
+			return mail($to, $subject, $html, implode("\r\n", $headers));
+		}

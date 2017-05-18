@@ -1,0 +1,45 @@
+public function testquery()
+	  {
+		 /*  $fuilterUsers ='';
+		  $userlist = $this->CommonModel_ext->select_data('users');
+		  print_R($userlist);
+		  foreach($userlist as $ulist)
+		  {
+			  echo $ulist->name.'</br>';
+			  $emplode = array_sum(explode(',',$ulist->salary));
+			  print_R($emplode); echo'<pre>';
+			  $fuilterUsers = $ulist;
+			  print_R($fuilterUsers);
+			  
+		  } */
+		  
+		  $fuilterUsers =array();
+		  $this->load->database();
+		   $this->db->select('*');
+			  //$this->db->select('ORDER BY id DESC');
+		   $this->db->from('users');
+		   $query=$this->db->get();
+			  $userlist = $query->result_array();
+			  //print_R($userlist);
+			 // header("Content-Type: application/json");
+			  //print_R($userlist);die;
+			  
+			   $array1 = array();
+			   $array2 = array();
+			  foreach($userlist as $ulist)
+			  {
+				  //echo $ulist->name.'</br>';
+				  //$emplode = array_sum(explode(',',$ulist->salary));
+				  //print_R($emplode); echo'<pre>';
+				  //$fuilterUsers[] = $ulist;
+				  $count =0;
+				   foreach($ulist as $key=>$value)
+					{
+					  $array1[$count] =  $value;
+						$count++;
+					}
+				  $array2[]=$array1;
+			  }
+			  
+				 echo'<pre>'; print_R($array2); 
+	  }

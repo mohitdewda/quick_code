@@ -1,0 +1,85 @@
+//Backup marks data//
+	function download_marks_backup($tablename,$directoryname,$marksimport=null)
+	{
+		$this->load->dbforge();
+		$this->load->dbutil();
+
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+		
+		$options = array(
+                'format'      => 'txt',             // gzip, zip, txt
+                'add_drop'    => TRUE,              // Whether to add DROP TABLE statements to backup file
+                'add_insert'  => TRUE,              // Whether to add INSERT data to backup file
+                'newline'     => "\n"               // Newline character used in backup file
+              );
+
+		if($tablename == 'all')
+		{
+			$tables = array('');
+			$file_name	=	'system_backup_'.$current_sessionID;
+		}
+		else 
+		{
+			$tables = array('tables'	=>	array($tablename));
+			$file_name	=	'backup_'.$tablename.'_'.$current_sessionID;
+		}
+
+		$backup =& $this->dbutil->backup(array_merge($options , $tables)); 
+
+		// Load the file helper and write the file to your server
+		$this->load->helper('file');
+		write_file(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql', $backup);
+
+		$this->load->helper('download');
+
+		if($marksimport=='marksbackup')
+		{
+			$this->import_marksData_todb($file_name, $directoryname, 'school_management'.$current_sessionID);
+		}
+			
+	}
+	function import_marksData_todb($file_name, $directoryname, $new_db_name)
+	{
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+
+		$check_backup = $this->select_data('marks_backup',array('marks_backup_session' => $current_sessionID));
+		if(empty($check_backup))
+		{
+			$insert_backup = $this->insert_data('marks_backup',array('marks_sql_name' => $file_name.'.sql', 'marks_backup_session' => $current_sessionID));
+		}
+
+		$db_exists = $this->dbutil->database_exists($new_db_name);
+		if ($db_exists==true)
+		{
+		    
+		}
+		else
+		{
+			$this->dbforge->create_database($new_db_name);	
+		}
+		// for import table sql in another database
+		$config['hostname'] = "localhost";
+		$config['username'] = "root";
+		$config['password'] = "";
+		$config['dbdriver'] = "mysqli";
+		$config['dbprefix'] = "";
+		$config['pconnect'] = FALSE;
+		$config['db_debug'] = TRUE;
+		$config['cache_on'] = FALSE;
+		$config['cachedir'] = "";
+		$config['char_set'] = "utf8";
+		$config['dbcollat'] = "utf8_general_ci";						  
+	   	$config['database'] = $new_db_name;
+	   	$marksbackup = $this->load->database($config, true);
+	   	
+	   	$sql = file_get_contents(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql');
+	   	$marksdatatoimport = explode(';', $sql);
+		array_pop($marksdatatoimport);
+
+		foreach($marksdatatoimport as $statement){
+		    $statment = $statement . ";";
+		    $marksbackup->query($statement);   
+		}
+	}

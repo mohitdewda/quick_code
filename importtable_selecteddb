@@ -1,0 +1,97 @@
+//Backup marks data//
+	function download_marks_backup($tablename,$directoryname,$marksimport=null)
+	{
+		$cur_time = strtotime(date("Y-m-d H:i:s"));
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+		
+		$options = array(
+                'format'      => 'txt',             // gzip, zip, txt
+                'add_drop'    => TRUE,              // Whether to add DROP TABLE statements to backup file
+                'add_insert'  => TRUE,              // Whether to add INSERT data to backup file
+                'newline'     => "\n"               // Newline character used in backup file
+              );
+
+		if($tablename == 'all')
+		{
+			$tables = array('');
+			$file_name	=	'system_backup_'.$current_sessionID.'_'.$cur_time;
+		}
+		else 
+		{
+			$tables = array('tables'	=>	array($tablename));
+			$file_name	=	'backup_'.$tablename.'_'.$current_sessionID.'_'.$cur_time;
+		}
+
+		$backup =& $this->dbutil->backup(array_merge($options , $tables)); 
+
+		write_file(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql', $backup);
+
+		if($marksimport=='marksbackup')
+		{
+			$tableold_name = 'mark';
+			$tablenew_name =$tableold_name.'_s'.$current_sessionID;
+			$import_result = $this->import_marksData_todb($file_name, $directoryname, 'letsscho_test_schooldata', $tableold_name, $tablenew_name);
+			return $import_result;
+		}
+			
+	}
+
+	function import_marksData_todb($file_name, $directoryname, $new_db_name, $tableold_name, $tablenew_name)
+	{
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+
+		/*$db_exists = $this->dbutil->database_exists($new_db_name);
+		if ($db_exists==true)
+		{
+		    
+		}
+		else
+		{
+			$this->dbforge->create_database($new_db_name);	
+		}*/
+		// for import table sql in another database
+		$marksbackup = $this->load->database('backup', true);
+	   	
+	   	$sql = file_get_contents(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql');
+	   	$marksdatatoimport = explode(';', $sql);
+		array_pop($marksdatatoimport);
+		$countsql =0;
+		foreach($marksdatatoimport as $statement){
+		    $statment = $statement . ";";
+		    
+		    $sqlinsert = $marksbackup->query($statement);
+		    if($sqlinsert)
+		    {
+		    	$countsql++;
+		    }   
+		}
+
+		if(count($marksdatatoimport)==$countsql)
+		{
+			$table_exist = $marksbackup->query("SHOW TABLES LIKE '$tablenew_name';");
+
+			if($table_exist->conn_id->affected_rows==0)
+			{
+				$rename_table = $marksbackup->query("RENAME TABLE ".$tableold_name." TO ".$tablenew_name."");
+				if($rename_table)
+				{
+					return 1;
+				}
+				else
+				{
+					return 0;
+				}
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+
+	} 

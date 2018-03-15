@@ -1,0 +1,14 @@
+$html = 'your html content';
+		
+// To send HTML mail, the Content-type header must be set
+$headers[] = 'MIME-Version: 1.0';
+$headers[] = 'Content-type: text/html; charset=iso-8859-1';
+
+$from = 'test@myemail.com';
+// Additional headers
+$headers[] = 'From: Hostname <'.$from.'>';
+if($_SERVER['HTTP_HOST'] == 'localhost'){
+	return false;												
+}else{
+	return mail($to, $subject, $html, implode("\r\n", $headers));
+}

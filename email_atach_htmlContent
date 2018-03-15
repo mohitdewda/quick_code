@@ -1,14 +1,57 @@
-$html = 'your html content';
-		
-// To send HTML mail, the Content-type header must be set
-$headers[] = 'MIME-Version: 1.0';
-$headers[] = 'Content-type: text/html; charset=iso-8859-1';
+/*start email with attachments*/
 
-$from = 'test@myemail.com';
-// Additional headers
-$headers[] = 'From: Hostname <'.$from.'>';
-if($_SERVER['HTTP_HOST'] == 'localhost'){
-	return false;												
-}else{
-	return mail($to, $subject, $html, implode("\r\n", $headers));
+function mailFileAttachment($file_name = null, $reciever_email = null, $data =null)
+{
+	$filePath = FCPATH."/files/$file_name";
+	$file_size = filesize($filePath);
+	$handle = fopen($filePath, "r");
+	$content = fread($handle, $file_size);
+	fclose($handle);
+
+	$content = chunk_split(base64_encode($content));
+	$uid = md5(uniqid(time()));
+	$name = basename($filePath);
+
+	$eol = PHP_EOL;
+
+	// Basic headers
+	$from = 'donotreply@'.$_SERVER['SERVER_NAME'].'.com';
+	// Additional headers
+	$header = 'From: Hostname <'.$from.'>'.$eol;
+	$header .= 'Reply-To: donotreply@'.$_SERVER['SERVER_NAME'].'.com'.$eol;
+	$header .= "MIME-Version: 1.0\r\n";
+	$header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"";
+	$body = '<p>
+				<h2 style="padding: 10px 0px 0px 10px; text-align: left; font-family: sans-serif; font-size: 15px; line-height: 20px; color: #555555;">
+					<b>Hello User,</b>
+				</h2>
+			</p>
+			<p>
+				<h6 style="padding: 10px; text-align: left; font-family: sans-serif; font-size: 15px; line-height: 20px; color: #555555;">
+					Please Find Attached demo file.</br><b>ThankYou For Contact with US</b> 
+				</h6>
+			</p>';
+			
+	// Put everything else in $message
+	$message = "--".$uid.$eol;
+	$message .= "Content-Type: text/html; charset=ISO-8859-1".$eol;
+	$message .= "Content-Transfer-Encoding: 8bit".$eol.$eol;
+	$message .= $body.$eol;
+	$message .= "--".$uid.$eol;
+	$message .= "Content-Type: application/pdf; name=\"$file_name\"".$eol;
+	$message .= "Content-Transfer-Encoding: base64".$eol;
+	$message .= "Content-Disposition: attachment; filename=\"$file_name\"".$eol;
+	$message .= $content.$eol;
+	$message .= "--".$uid."--";
+
+	if (mail($reciever_email, 'Demomail', $message, $header))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
+
+/*end email with attachments*/

@@ -1,0 +1,81 @@
+https://sites.google.com/site/sunnyjsoni/about/logic
+
+<form  method="post">
+<div align="center" style="width:60%;">
+<b>Atm Machine Test Page</b>
+<br clear="all"><br clear="all">
+<div align="left" style="float:left;margin-left:200px;width:20%">
+Input::
+</div>
+<div align="left" style="float:left;margin-left:10px;width:30%">
+<input type="text" name="txtAmount" value="<?=$_POST['txtAmount']?>"/>
+</div>
+<br><br>
+<input type="submit" name="btnGenerate" value="Generate"/>
+</div>
+</form>
+<?php
+
+if($_POST['btnGenerate']=="Generate")
+{
+ 
+ $txtAmount = $_POST['txtAmount'];
+ if($txtAmount != "")
+ {
+ //$txtAmount= intval($txtAmount);
+ $rupees = array(1000,500,100,50,20,10);
+ $count = array(0,0,0,0,0,0);
+ 
+ if($txtAmount <=0)
+ {
+ $output="<b>Invalid Amount</b>";
+ }else{
+ 
+ if(!preg_match('/\d\d[0]$/',$txtAmount))
+ {
+ $output="<b>Invalid Amount</b>";
+ }else{
+ for($i=0;$i<count($rupees);$i++){
+ if($rupees[$i]<$txtAmount || $rupees[$i]==$txtAmount){
+ $count[$i]=intval($txtAmount/$rupees[$i]);
+ $txtAmount=$txtAmount%$rupees[$i];
+ }
+ }
+ for($i=0;$i<count($count);$i++){
+ if($count[$i]!=0){
+  $output .= "<br><b>".$rupees[$i]." X ".$count[$i]." = ".($rupees[$i]*$count[$i])."</b>";
+ }
+ }
+ 
+ }
+ }
+ 
+ 
+ }else{
+ $output="<b>Invalid Amount- Amount Input Not Blank</b>";
+ }
+?>
+<div align="center" style="width:60%;">
+<?php
+
+echo "Output: $output";
+?>
+</div>
+<?php 
+}
+?>
+
+<div style="float:right;margin-right:530px;margin-top:200px;">
+<h5>Developed By Sunny J Soni</h5>
+</div>
+
+----------------------------------------------------------------------------------------------------------------------
+Input - 5680
+----------------------------------------------------------------------------------------------------------------------
+Output: 
+1000 X 5 = 5000
+500 X 1 = 500
+100 X 1 = 100
+50 X 1 = 50
+20 X 1 = 20
+10 X 1 = 10

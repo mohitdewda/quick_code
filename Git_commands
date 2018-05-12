@@ -1,0 +1,14 @@
+set user authentication :
+git config --global user.name "user_name"
+git config --global user.email "user_email"
+
+Create new branch :
+git checkout master
+git pull origin master
+git checkout -b "branch_name"
+git add -A
+git commit -m "comment"
+git push origin "branch_name"
+
+Switched to another branch :
+git checkout "branch_name"

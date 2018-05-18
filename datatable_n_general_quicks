@@ -1,0 +1,53 @@
+//sample ajax
+$('body #md').on('click', function(e){
+  e.preventDefault();
+  var form = new FormData();
+  $.ajax({
+    url:'',
+    data:form,
+    processData:false,
+    contentType:false,
+    type:'POST',
+    cache:false,
+    beforeSend:function(){
+      //before ajax call actions
+    },
+    sucess:function(response){
+      var errors = response.data;
+      $.each(errors, function(key, value){
+      });
+      response = $.parseJSON();
+    },
+    complete:function(){
+      //after complete actions
+    }
+  });
+});
+
+//Manage localStorage
+localStorage.setItem('key','value'); //set
+localStorage.getItem('key'); //get
+localStorage.clear(); //clear
+
+//sample datables
+var dataTable = $('#dataTableID').DataTable( {
+  "processing": true,
+  "serverSide": true,
+  "ajax":{
+      url :'request/path',
+      type: "post",
+  },
+  "aoColumns": [
+  {"bVisible": true, "bSearchable": true, "bSortable": true},
+  {"bVisible": true, "bSearchable": true, "bSortable": true},
+  {"bVisible": true, "bSearchable": false, "bSortable": false},
+  ],
+  "order": [[ 1, "desc" ]],
+  "fnDrawCallback": function (oSettings) {
+      updateRowView();
+  }
+});
+function updateRowView(){
+  var row1 = $('.elementClass').closest('tr');
+  row1.addClass('class_name bg-danger');
+}

@@ -29,6 +29,44 @@ localStorage.setItem('key','value'); //set
 localStorage.getItem('key'); //get
 localStorage.clear(); //clear
 
+//general programs start
+function factorial($number) {
+  if($number<2){
+    return 1;
+  }else{
+    return ($number * $this->factorial($number-1));
+  }
+}
+$this->factorial(4)
+function getTable($number, $i = 1)
+  {
+      echo ($number*$i).'<br>';
+      if($i<10){
+        $i++;
+          $this->getTable($number, $i);
+      }
+  }
+  $this->getTable(2);
+  function stars() {
+  for($i=1;$i<=5;$i++){
+    for($j=1;$j<=$i;$j++){
+      echo 'm';
+    }
+    echo '<br>';
+  }
+}
+$this->stars();
+function starsR() {
+  for($i=5;$i>=1;$i--){
+    for($j=1;$j<=$i;$j++){
+      echo 'm';
+    }
+    echo '<br>';
+  }
+}
+$this->starsR();
+//general programs end
+
 //sample datables
 var dataTable = $('#dataTableID').DataTable( {
   "processing": true,

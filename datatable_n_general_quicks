@@ -112,3 +112,12 @@ function makeString() {
 	    echo '<br>';
 	}
 }
+function replaceNumbersWithString() {
+	$number = $this->input->get('number');
+	$string = $this->input->get('string');
+	$find_number = preg_replace( "/[^0-9]/", "", $string );
+	if($number!=''){
+		$string = str_replace($find_number, $number, $string);
+	}
+	echo $string;
+}

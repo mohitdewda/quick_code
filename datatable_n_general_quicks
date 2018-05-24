@@ -97,18 +97,18 @@ if (strcasecmp($var1, $var2) == 0) {
 }
 //makeString
 function makeString() {
-		$str = 'mohit';
-		$result = '';
-		$len = strlen($str);
-	  	for($i=0;$i<=$len-1;$i++){
-		    $append = $str[$i];
-		    $result = $result.$append;
-		    echo $result;
-		    echo '<br>';
-	  	}
-	  	for($i=$len-1;$i>=1;$i--){
-		    $result[$i] = null;
-		    echo $result;
-		    echo '<br>';
-	  	}
+	$str = 'mohit';
+	$result = '';
+	$len = strlen($str);
+	for($i=0;$i<=$len-1;$i++){
+	    $append = $str[$i];
+	    $result = $result.$append;
+	    echo $result;
+	    echo '<br>';
 	}
+	for($i=$len-1;$i>=1;$i--){
+	    $result[$i] = null;
+	    echo $result;
+	    echo '<br>';
+	}
+}

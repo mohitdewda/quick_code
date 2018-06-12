@@ -1,0 +1,9 @@
+/*//insert_all_student_marksData
+$querym = $this->db->query("SELECT `c`.`mark_id` FROM student a JOIN subject b ON `a`.`class_id`=`b`.`class_id` join mark c ON `c`.`class_id` = `a`.`class_id` where `c`.`class_id` = $param2 and `c`.`exam_id` = $exam_id and `c`.`mark_session` = $current_sessionID and `c`.`student_id` = `a`.`student_id`")->num_rows();
+
+if(!$querym>0)
+{
+    $inserMarks_data = $this->db->query('INSERT INTO `mark`(`exam_id`, `class_id`, `mark_session`, `student_id`, `subject_id`) (SELECT '.$exam_id.' as exam_id, '.$param2.' as class_id, '.$current_sessionID.' as mark_session,  a.student_id ,b.subject_id FROM student a JOIN subject b ON a.class_id=b.class_id where a.class_id = '.$param2.')');
+}*/
+
+//$inserMarks_data = $this->db->query('INSERT INTO `mark`(`exam_id`, `class_id`, `mark_session`, `student_id`, `subject_id`) (SELECT '.$exam_id.' as exam_id, '.$param2.' as class_id, '.$current_sessionID.' as mark_session, a.student_id ,b.subject_id FROM student a JOIN subject b ON a.class_id=b.class_id where a.class_id = '.$param2.' AND a.class_id NOT IN(SELECT m.class_id FROM mark m where m.class_id='.$param2.'))');

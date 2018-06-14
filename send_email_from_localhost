@@ -1,0 +1,25 @@
+Send emails from PHP with ssmtp
+
+The installation process:
+
+	1. sudo apt-get install ssmtp
+
+	2. Then edit the /etc/ssmtp/ssmtp.conf file with this information:
+
+		mailhub=smtp.gmail.com:587
+		UseSTARTTLS=YES
+		AuthUser=<YOUR-EMAIL>@gmail.com
+		AuthPass=<YOUR-PASSWORD>
+
+		(or any other SMTP-server that you might want to use)
+
+
+	3. Find your php.ini file (usually in /etc/php5/cli/php.ini) and make sure the sendmail_path is:
+
+		sendmail_path = /usr/sbin/sendmail -t
+
+	4. Then restart your apache2-server with
+
+		service apache2 restart
+
+Now you can send outgoing emails with PHP!

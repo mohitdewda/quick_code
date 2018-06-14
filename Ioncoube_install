@@ -1,0 +1,5 @@
+sudo cp 00-ioncube.ini /etc/php/5.6/apache2/conf.d
+cd ioncube
+sudo mv *.so /usr/lib/php/20131226
+sudo service apache2 restart
+exit

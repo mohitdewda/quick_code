@@ -1,0 +1,211 @@
+//data with subdata in datatable
+public function getInwardData_Datatable() 
+{
+    $columns = array('transaction_date', 'payment_transaction_id', 'transaction_amount', 'generalFee', 'roll');
+    $results = $this->crud_model->getInwardData($this->input->post('start'),$this->input->post('length'),$columns[$this->input->post('order')[0]['column']],$this->input->post('order')[0]['dir'],$this->input->post('search')['value']);
+    $user_data = $results['data'];
+    $total_results = $results['total_result'];
+    $data = array();
+    $count = 1;
+    $trans_arr = array();
+    $transaction_amount=0;
+    $j=0;
+    $mh = 0;
+    $received_amount=$received_for='';
+    foreach($user_data as $user)
+    {
+        $generalFee = $user->generalFee;
+        $feeDuration = $user->feeDuration.' Month';
+        $lateFee = $user->lateFee;
+        $category = $this->crud_model->get_feeCategory_name($user->transaction_title);
+        $received_amount .= '<p class="mb-0 row"><b class="col-md-6">'.$category.' : </b><span class="col-md-6 text-left">'.getGlobalSettingValue('currency').' '.number_format($generalFee, 2, '.', '').'</span></p>';
+        if($lateFee>0){
+            $received_amount .= '<p class="mb-0 row"><b class="col-md-6">'.$category.' '.get_phrase('late_fee').' : </b><span class="col-md-6 text-left"> '.getGlobalSettingValue('currency').' '.number_format($lateFee, 2, '.', '').'</span></p>';
+        }
+
+        $trans_count = $user->trans_count;
+        $trans_id = $user->payment_transaction_id;
+        if(!in_array($trans_id,$trans_arr)){
+            $trans_arr[] = $trans_id;                        
+        }
+        if(in_array($trans_id,$trans_arr)){
+            $j++;
+        }
+       
+        if($j==$trans_count){
+            $countvalue = $count++;
+            $wave_off_amount = $user->wave_off_amount;
+            
+            $column1 = $user->transaction_date;
+            $column2 = $user->payment_transaction_id;
+            $column3 = getGlobalSettingValue('currency').' '.number_format($user->transaction_amount, 2, '.', '');
+            $column4 = $received_amount;
+            $column5 = '<p class="col-md-12 mb-0 row"><b>'.get_phrase('code').' : </b><span style="padding-left: 21px;">'.$user->roll.'</span></p>
+            <p class="col-md-12 mb-0 row"><b>'.get_phrase('name').' : </b><span style="padding-left: 18px;">'.$user->name.'</span></p>
+            <p class="mb-0">
+                <a data-toggle="collapse" data-parent="#accordionExample" href="#paidcollapseDetail'.$countvalue.' " aria-expanded="true">Click to more <i class="caret"></i></a>
+                <div id="paidcollapseDetail'.$countvalue.'" class="collapse" aria-expanded="true">
+                    <div class="">
+                        <p class="col-md-12 mb-0 row"><b>'.get_phrase('email').' : </b><span style="padding-left: 19px;">'.($user->email!='' ? $user->email : 'NA').'</span></p>
+                        <p class="col-md-12 mb-0 row"><b>'.get_phrase('class').' : </b><span style="padding-left: 19px;">'.$this->crud_model->get_class_name($user->class_id).'</span></p>
+                        <p class="col-md-12 mb-0 row"><b>'.get_phrase('section').' : </b><span style="padding-left: 6px;">'.($user->class_sections_id!='' || $user->class_sections_id!=0 ? @$this->crud_model->get_sections_name_by_id('',$user->class_sections_id) : 'NA').'</span></p>
+                    </div>
+                </div>
+            </p>';
+            $action = '<a href="'.base_url('sysadmin/payment_receipt/'.$trans_id).'" class="btn btn-secondary waves-effect">View Receipt</a>';                
+            $transaction_amount=$j=0;
+            $received_amount='';
+            $data[] = array($column1,$column2,$column3,$column4,$column5,$action);
+        }else{
+            $mh++;
+        }
+    }
+    $json_data = array(
+                "draw"            => intval( $this->input->post('draw') ),
+                "recordsTotal"    => intval( count($user_data)-$mh ), 
+                "recordsFiltered" => intval( $total_results-$mh ),
+                "data"            => $data  
+                );
+    echo json_encode($json_data);
+}
+
+//sub-data datatable script
+$(document).ready(function() {
+    var dataTable2 = $('#inwardDatatable2').DataTable( {
+        autoWidth: !1,
+        responsive: !0,
+        lengthMenu: [
+            [15, 30, 45, 100],
+            ["15 Rows", "30 Rows", "45 Rows", "100 Rows"]
+        ],
+        language: {
+            searchPlaceholder: "Search for records..."
+        },
+        dom: "Blfrtip",
+        buttons: [{
+            extend: "excelHtml5",
+            title: "Export Data",
+            exportOptions: {
+                columns: [ 0, 1, 2, 3, 4 ]
+            }
+        }, {
+            extend: "csvHtml5",
+            title: "Export Data",
+            exportOptions: {
+                columns: [ 0, 1, 2, 3, 4 ]
+            }
+        }, {
+            extend: "print",
+            title: "",
+            exportOptions: {
+                columns: [ 0, 1, 2, 3, 4 ]
+            }
+        }],
+        initComplete: function(a, b) {
+            $(this).closest(".dataTables_wrapper").prepend('<div class="dataTables_buttons hidden-sm-down actions"><span class="actions__item zmdi zmdi-print" data-table-action="print" /><span class="actions__item zmdi zmdi-fullscreen" data-table-action="fullscreen" /><div class="dropdown actions__item"><i data-toggle="dropdown" class="zmdi zmdi-download" /><ul class="dropdown-menu dropdown-menu-right"><a href="" class="dropdown-item" data-table-action="excel">Excel (.xlsx)</a><a href="" class="dropdown-item" data-table-action="csv">CSV (.csv)</a></ul></div></div>')
+        },
+        //"processing": true,
+        "serverSide": true,
+        "ajax":{
+            url :'<?php echo base_url("sysadmin/getInwardData_Datatable")?>',
+            type: "post",
+            data: {
+                '<?php echo $this->security->get_csrf_token_name(); ?>' : '<?php echo $this->security->get_csrf_hash(); ?>'
+                },
+        },
+        "aoColumns": [
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": false, "bSortable": false},
+        {"bVisible": true, "bSearchable": false, "bSortable": false},
+        {"bVisible": true, "bSearchable": false, "bSortable": false},
+        ]
+    });
+    $("body").on("click", "[data-table-action]", function(a) {
+        a.preventDefault();
+        var b = $(this).data("table-action");
+        if ("excel" === b && $(this).closest(".dataTables_wrapper").find(".buttons-excel").trigger("click"), "csv" === b && $(this).closest(".dataTables_wrapper").find(".buttons-csv").trigger("click"), "print" === b && $(this).closest(".dataTables_wrapper").find(".buttons-print").trigger("click"), "fullscreen" === b) {
+            var c = $(this).closest(".card");
+            c.hasClass("card--fullscreen") ? (c.removeClass("card--fullscreen"), $("body").removeClass("data-table-toggled")) : (c.addClass("card--fullscreen"), $("body").addClass("data-table-toggled"))
+        }
+    });
+    //cancel action on make payment form
+    $('#payment-cancel').on('click',function(){
+        $('.allDt').addClass('active');
+        $('.tabActionBtn').removeClass('active');
+        $('#allclass-tab').addClass('show active');
+        $('#addNewLinkTab-1').removeClass('show active');
+    });
+    //form submission for payment processing from make payment form
+    $('#studentPaymentForm').on('submit', function(e){   
+        e.preventDefault();
+        var valid = $(this).validationEngine('validate');
+        if(valid==true){
+            var form = new FormData($(this)[0]);
+            form.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+            $.ajax({
+                url: '<?php echo site_url();?>sysadmin/makePaymentRequest',
+                data: form,
+                processData:false,
+                contentType:false,
+                type:'POST',
+                cache:false,
+                success:function(response){
+                    var response = $.parseJSON(response);
+                    if(response.status ==  true){
+                        $('.remove_val').remove();
+                            location.replace('<?php echo base_url();?>sysadmin/make_payment/'+response.student_id);
+                    }else{
+                        $('.remove_val').remove();
+                        if(response.data != ''){
+                            var errorFocus = '';
+                            var errors = response.data;
+                            $.each(errors, function(key, value){
+                                if(value!=''){
+                                    errorFocus = key;
+                                }
+                                if(key=='custom_error'){
+                                    $('.custom_error').html(value);
+                                }
+                                $('#error_'+key).closest('div').append('<div class="text text-danger remove_val">'+value+'</div>');
+                            });
+                            $('#'+errorFocus).focus();
+                        }  
+                    }
+                }
+            });
+        }
+    });
+    // AJAX call for autocomplete
+    $("#studentSearch-box").keyup(function(){
+        $.ajax({
+        type: "POST",
+        url: "<?php echo base_url() . 'sysadmin/autoSuggestStudentRequest'; ?>",
+        data:'keyword='+$(this).val(),
+        beforeSend: function(){
+            $("#studentSearch-box").css("background","#FFF url(LoaderIcon.gif) no-repeat 165px");
+        },
+        success: function(data){
+            $("#suggesstion-box").show();
+            $("#suggesstion-box").html(data);
+            $("#studentSearch-box").css("background","#FFF");
+        }
+        });
+    });
+});
+//To select student name
+function selectStudent(studentID,studentName) {
+    $("#studentSearch-box").val(studentName);
+    $("#student_code").val(studentID);
+    $("#suggesstion-box").hide();
+}
+function closeSearchBox() {
+    $("#studentSearch-box").val('');
+    $("#student_code").val('');
+    $("#suggesstion-box").hide();
+}
+//click here to add fee action
+var addFeeNow = function(){
+    $("#addFeeeForSelectedCategory").trigger('submit');
+}

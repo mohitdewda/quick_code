@@ -1,0 +1,218 @@
+//login check and redirect
+$array = array('index','forgot_password');
+if(!in_array($this->router->method, $array))
+{
+    if(!$this->is_admin_login())
+    {
+        redirect(base_url('admin'));
+    }
+}
+function is_admin_login()
+{
+    $CI =& get_instance();
+    $CI->load->library('session');
+    return $CI->session->userdata('admin_logged_in');
+}
+
+//login and remember me
+public function login($redirect_from = null)
+{
+    $data['Title'] = "User Login";
+    $data['menu_active'] = 'login';
+    if($this->is_user_login()){
+        redirect(base_url('dashboard'));
+    }
+    if($this->input->post('return_url')){
+        $this->session->set_userdata('referred_from', $this->input->post('return_url'));
+    }
+    $credentials = json_decode(@$_COOKIE['user_credential']);
+    $data['email'] = "";
+    $data['password'] = "";
+    $data['remember'] = "";
+    if(isset($credentials) && !empty($credentials)){
+        $data['email'] = $credentials->email;
+        $data['password'] = $credentials->password;
+        $data['remember'] = @$credentials->remember;
+    }
+    $this->form_validation->set_error_delimiters('<div class="server_validate_error">', '</div>');
+    $this->form_validation->set_rules('email', 'email', 'trim|required|valid_email');
+    $this->form_validation->set_rules('password', 'Password', 'trim|required');
+    $this->form_validation->set_rules('remember', 'Remember', 'trim');
+    if ($this->form_validation->run()) {
+        $check_user = $this->User_model->checkUserEmailPassword(set_value('email'),$this->load->hashPassword(set_value('password')));
+        if($check_user)
+        {
+            if($check_user->email_verification_status=='verified'){
+                if($check_user->user_status=='active'){
+                    $rememberMe = $this->input->post('remember');
+                    if ($rememberMe) {
+                        $arr = json_encode(array(
+                            'email' => trim(set_value('email')),
+                            'password' => trim(set_value('password')),
+                            'remember' => $rememberMe
+                        ));
+                        setcookie('user_credential', $arr, time() + (86400 * 30), "/");
+                    } else {
+                        setcookie('user_credential', '', time() + (86400 * 30), "/");
+                    }
+                    $user_data['login_api_type'] = 'general';
+                    $user_data['login_api_user_id'] = '';
+                    $user_data['logged_in_status'] = 1;
+                    $update_userdata = $this->User_model->updateUserDetailById($user_data,$check_user->user_id);
+                    $user_detail = $this->User_model->getUserDetailById($check_user->user_id);
+                    $this->session->set_userdata(array(
+                        'user_logged_in' => true,
+                        'user' => $user_detail
+                    ));
+                    if($this->session->userdata('referred_from')){
+                        $referred_from = $this->session->userdata('referred_from');
+                        $this->session->unset_userdata('referred_from');
+                        redirect($referred_from, 'refresh');
+                    }else{
+                        redirect(base_url('dashboard'));
+                    }
+                }else{
+                    $this->session->set_flashdata('error','Your account is inactive.');
+                }
+            }else{
+                //email verification
+                $email_verification_key = $this->load->getRandomString(4);
+                $base64userid = base64_encode($check_user->user_id);
+                $subject_name = $this->User_model->getNotificationSubject('email_verification');
+                $verfication_link = base_url('email_verification').'/'.$base64userid;
+                $variables = array('name'=>$check_user->first_name.' '.$check_user->last_name,'email'=>$check_user->email,'verification_link' => $verfication_link,'varification_code' => $email_verification_key);
+                $this->load->SendMail($check_user->email,'email_verification',$subject_name,$variables);
+                $this->User_model->updateUserDetailByEmail(array('email_verification_key'=>$email_verification_key), $this->input->post('email'));
+                
+                $this->session->set_flashdata('error','Your account is not verified. Please check your email to verify.');
+            }
+        }
+        else
+        {
+           $this->session->set_flashdata('error','Invalid Email or Password.');
+        }
+    }
+    $data['fb_app_id']  = $this->settings->getValue('FACEBOOK_APP_ID');
+    $data['google_plus_api_key']  = $this->settings->getValue('GOOGLE_PLUS_API_KEY');
+    $data['google_plus_client_id']  = $this->settings->getValue('GOOGLE_PLUS_CLIENT_ID');
+    $this->twig->display('user/login', $data);
+}
+
+//get user list for datatables
+public function get_user(){
+    $post_data= $this->input->post();
+    $columns = array('user_id','first_name','last_name','email','mobile_number','user_status','email_verification_status');
+    $results = $this->Admin_model->getUser($post_data['start'],$post_data['length'],$columns[$post_data['order'][0]['column']],$post_data['order'][0]['dir'],$post_data['search']['value'],$this->uri->segment(3));
+    $user_data = $results['data'];
+    $total_results = $results['total_result'];
+    
+    $data = array();
+    foreach($user_data as $user)
+    {
+        $user_status = $user->user_status;
+        if($user_status=='active'){
+            $user_status_label = '<span class="label label-success label-sm"> Active </span>';
+        }elseif($user_status=='inactive'){
+            $user_status_label = '<span class="label label-danger label-sm"> Inactive </span>';
+        }
+        $action = "<a href='".base_url("admin/manage_user_post/$user->user_id")."' class='btn btn-default btn-xs'>View Ad</a><a href='".base_url("admin/add_user/$user->user_id")."' class='btn btn-default btn-xs'><i class='fa fa-edit'></i></a><a href='javascript:deleteuser(".$user->user_id.")' class='btn btn-default btn-xs'><i class='fa fa-times'></i></a>";
+        $data[] = array($user->user_id,$user->first_name,$user->last_name,$user->email,$user->mobile_number,$user_status_label,$action);
+    }
+    $json_data = array(
+                    "draw"            => intval( $post_data['draw'] ),
+                    "recordsTotal"    => intval( $total_results ),  
+                    "recordsFiltered" => intval( $total_results ),
+                    "data"            => $data 
+                    );
+
+    echo json_encode($json_data);
+}
+
+// request for load user data by php datatable
+$(document).ready(function(){
+    var dataTable = $('#usertable').DataTable( {
+        "processing": true,
+        "serverSide": true,
+        "ajax":{
+            url :'{{base_url("admin/get_user")}}',
+            type: "post",
+        },
+        "aoColumns": [
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true, "sClass":"email-column"},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": false, "bSortable": false},
+        ],
+        "order": [[ 0, "desc" ]],
+    });
+});
+function deleteuser(id)
+{
+   if(confirm("Are you sure you want to delete this user ?")){
+        $('input[name=delete_id]').val(id);
+        $('form[name=delete_user]').submit();
+    }
+}
+
+//ajax submit request
+$('#form-post-submit').on('submit', function(e){
+    e.preventDefault();
+    var valid = $('#form-post-submit').valid();
+    var tnc_check = $("input[name=tnc]:checked").val();
+    if(tnc_check=='1' && valid==true){
+        var valid = $('#form-post-submit').valid();
+        if(valid==true){
+            var form = new FormData($('#form-post-submit')[0]);
+            $.ajax({
+                url: '{{base_url('user/add_post_action')}}',
+                data: form,
+                processData:false,
+                contentType:false,
+                type:'POST',
+                cache:false,
+                beforeSend:function(){
+                	$("#post_submit_btn").attr("title","Processing...").attr("disabled","disabled").css("cursor","wait");
+                },
+                success:function(response){
+                    var response = $.parseJSON(response);
+                    $('.remove_val').remove();
+                    if(response.status ==  true){
+                        if(response.payment_request=='required'){
+                            location.replace('{{base_url()}}user/payment/'+response.post_id);
+                        }else{
+                        	if(response.request_type=='edit'){
+                        		var rows = dataTable.clear().draw();
+                        		$.bootstrapGrowl(response.message,{type: 'success', width: 'auto', align: 'right'});
+                        	}else{
+                            	localStorage.setItem("Status",response.message);
+                            	location.reload();
+                        	}
+                        }
+                    }else{
+                        if(response.data != ''){
+                            var errors = response.data;
+                            $.each(errors, function(key, value){
+                            	if(key=='post_photos'){
+                            		$('#file_required_error').html('<div class="text remove_val">'+value+'</div>');
+                            	}else{
+                                	$('#'+key).closest('div').append('<div class="text remove_val">'+value+'</div>');
+                            	}
+                            }); 
+                        }
+                    }
+                },
+                complete:function(){
+                	$("#post_submit_btn").removeAttr("title").removeAttr("disabled").removeAttr('style');
+                }
+            });
+        }
+    }else{
+        $('#tnc_error').html('<span class="server_validate_error">This field is required.</span>');
+    }
+    if(tnc_check=='1'){
+        $('#tnc_error').html('');
+    }
+});

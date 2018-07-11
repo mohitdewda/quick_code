@@ -128,6 +128,44 @@ public function get_user(){
     echo json_encode($json_data);
 }
 
+//getUser model function
+function getUser($start,$length,$order_by,$sort_by,$search,$where='')
+{
+    $this->db->select('SQL_CALC_FOUND_ROWS user_id,first_name,last_name,email,mobile_number,user_status,email_verification_status,user_created', FALSE)->from('tbl_user');
+    if($search){
+        $this->db->where("user_id", $search);
+        $this->db->or_like("first_name", $search);
+        $this->db->or_like("last_name", $search);
+        $this->db->or_like("email", $search);
+        $this->db->or_like("mobile_number", $search);
+        $this->db->or_like("user_status", $search);
+        $this->db->or_like("email_verification_status", $search);
+    }
+    $this->db->order_by($order_by, $sort_by);
+    $this->db->limit($length, $start);
+    $query =  $this->db->get();
+    $result['data'] = $query->result_object();
+    $query = $this->db->query('SELECT FOUND_ROWS() AS `Count`');
+    $result['total_result'] = $query->row()->Count;
+    return $result;
+}
+
+//model function with having
+function getCategory($start,$length,$order_by,$sort_by,$search,$where='')
+{
+    $this->db->select('SQL_CALC_FOUND_ROWS a.category_slug,b.category_title as parent_title,a.parent_id,a.category_id,a.category_title,a.category_created,(select count(*) from tbl_categories where parent_id=a.category_id) as subcat_count', FALSE)->from('tbl_categories a')->join('tbl_categories b', 'a.parent_id = b.category_id','left');
+    if($search){
+        $this->db->having('(a.category_id LIKE "%'.$search.'%" OR a.category_title LIKE "%'.$search.'%" OR parent_title LIKE "%'.$search.'%")', null, false);
+    }
+    $this->db->order_by($order_by, $sort_by);
+    $this->db->limit($length, $start);
+    $query =  $this->db->get();
+    $result['data'] = $query->result_object();
+    $query = $this->db->query('SELECT FOUND_ROWS() AS `Count`');
+    $result['total_result'] = $query->row()->Count;
+    return $result;
+}
+
 // request for load user data by php datatable
 $(document).ready(function(){
     var dataTable = $('#usertable').DataTable( {

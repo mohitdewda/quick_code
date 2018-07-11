@@ -1,0 +1,201 @@
+//load modal function
+function($view_name){
+    if($view_name == 'payment_receipt'){
+        $data['system_logo'] = $this->db->get_where('settings' , array('type' => 'system_name'))->row()->description;;
+        $data['system_name'] = $this->db->get_where('settings' , array('type' => 'system_email'))->row()->description;
+        $data['system_email'] = $this->db->get_where('settings' , array('type' => 'logo'))->row()->description;
+
+        $data['modal_title'] = $this->input->post('modal');
+        $transaction_id = $this->input->post('transaction_id');
+        $receipt_type = $this->input->post('receipt_type');
+        if($receipt_type=='single'){
+            $custom_query = "select b.student_id,b.name,b.roll,b.email,b.class_id,b.class_sections_id,c.fee_id,c.fee_category_id,c.fee,c.month_duration,a.* from ".self::$_table_prefix."transactions a join ".self::$_table_prefix."student b on a.student_id = b.student_id join ".self::$_table_prefix."fee c on a.fee_id = c.fee_id where a.transaction_id = $transaction_id";
+            $data['edit_data'] = $this->crud_model->select_data('', '', 'custom', $custom_query);
+
+            //due amount info
+            $data['dueAmountInfo'] = dueFeeAmountDetail($data['edit_data'][0]->student_id, self::$_current_sessionID ,$data['edit_data'][0]->fee_category_id);
+        }
+        if($receipt_type=='all'){
+            $custom_query = "select b.student_id,b.name,b.roll,b.email,b.class_id,b.class_sections_id,c.fee_id,c.fee_category_id,c.fee,c.month_duration,a.* from ".self::$_table_prefix."transactions a join ".self::$_table_prefix."student b on a.student_id = b.student_id join ".self::$_table_prefix."fee c on a.fee_id = c.fee_id where a.transaction_id = $transaction_id";
+            $data['edit_data'] = $this->crud_model->select_data('', '', 'custom', $custom_query);
+            $data['dueFeeAmountDetail'] = dueFeeAmountDetail($data['edit_data'][0]->student_id, $data['edit_data'][0]->transaction_session, $data['edit_data'][0]->fee_category_id);
+        }
+        $data['receiptType'] = $receipt_type;
+    }
+
+    $return = array('data' => $this->load->view('modals/'.$view_name,$data ,true), 'status' => true, 'message' => 'success');
+    echo json_encode($return);
+}
+
+//load modal js
+var edit_book_modal = function(modal_name,book_id){
+    var valid = $(this).validationEngine('validate');
+    var form = new FormData();
+    form.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+    form.append('modal', modal_name);
+    form.append('book_id', book_id);
+    $.ajax({
+        url:'<?=site_url();?>sysadmin/load_modal/'+modal_name,
+        data: form,
+        type: "POST",
+        processData:false,
+        contentType:false,
+        cache:false,
+        beforeSend:function(){
+            $('#modal-default').remove();
+        },
+        success:function(response){
+            var response = $.parseJSON(response);
+            if(response.status ==  true){
+                $('body').append(response.data);
+                $('#modal-default').modal('show');
+            }
+        },
+        complete:function(){
+           
+        }
+    });
+}
+
+//modal and form-request
+<!-- Modal -->
+<div class="modal fade" id="modal-default" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editBook_form" class="form-horizontal validatable" target="_top" method="post" enctype="multipart/form-data">
+            <div class="modal-header bg-primary">
+                <h4 class="modal-title text-white" id="myModalLabel">
+                    <span><?php echo get_phrase($modal_title);?></span>
+                    <span class="pull-right"><button type="button" class="close" data-dismiss="modal"><i class="fa fa-times"></i></button></span>
+                </h4>
+                <button type="button" class="btn btn-link text-white" data-dismiss="modal"><span class="card-title"> <i class="zmdi zmdi-close"></i></span> </button>
+            </div>
+            <div class="modal-body">
+            <div class="card mb-0 myscroll" id="style-08">
+                <div class="card-block">
+                    <?php foreach($edit_data as $row):?>
+                    <input type="hidden" name="book_id" value="<?php echo $row['book_id'];?>">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('name');?></label>
+                                <div class="form-group">
+                                    <input type="text" class="form-control validate[required]" name="name" value="<?php echo $row['name'];?>" placeholder="">
+                                    <i class="form-group__bar"></i>
+                                    <div id="error_name"></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('author');?></label>
+                                <div class="form-group">
+                                    <input type="text" class="form-control" name="author" value="<?php echo $row['author'];?>" placeholder="">
+                                    <i class="form-group__bar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('class');?></label>
+                                <div class="form-group">
+                                    <select name="class_id" class="select2_modal" style="width:100%;">
+                                        <option>Select Class</option>
+                                        <?php
+                                        $classes = $this->db->get('class')->result_array();
+                                        if(!empty($classes))
+                                        {
+                                            foreach ($classes as $classesList) 
+                                            {
+                                            ?>
+                                                <option value="<?php echo $classesList['class_id'];?>" <?php if($row['class_id']==$classesList['class_id'])echo 'selected';?>><?php echo $classesList['name'];?></option>
+                                            <?php
+                                            }
+                                        }
+                                        ?>    
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('price');?></label>
+                                <div class="form-group">
+                                    <input type="text" class="form-control" name="price" value="<?php echo $row['price'];?>" placeholder="">
+                                    <i class="form-group__bar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('status');?></label>
+                                <div class="form-group">
+                                    <select name="status" class="form-control">
+                                        <option value="available" <?php if($row['status']=='available')echo 'selected';?>><?php echo get_phrase('available');?></option>
+                                        <option value="unavailable" <?php if($row['status']=='unavailable')echo 'selected';?>><?php echo get_phrase('unavailable');?></option>
+                                    </select>
+                                    <i class="form-group__bar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <label><?php echo get_phrase('description');?></label>
+                                <div class="form-group">
+                                    <textarea class="form-control" rows="3" name="description" placeholder=""><?php echo $row['description'];?></textarea>
+                                    <i class="form-group__bar"></i>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach;?>
+                </div>
+            </div>
+            <div class="clearfix"></div>
+           </div>  
+           <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-info"><?php echo get_phrase('save');?></button>    
+           </div>
+        </form>
+      </div>
+   </div>
+<script>
+$(document).ready(function(){
+    //third party initialization
+    $(".validatable").validationEngine('attach', {promptPosition : "bottomLeft", scroll: false});
+    $(".select2_modal").select2();
+    //form submission
+    $('#editBook_form').on('submit', function(e){
+        e.preventDefault();
+        var valid = $(this).validationEngine('validate');
+        if(valid==true){
+            var form = new FormData($(this)[0]);
+            form.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+            $.ajax({
+                url: '<?php echo site_url();?>sysadmin/update_book',
+                data: form,
+                processData:false,
+                contentType:false,
+                type:'POST',
+                cache:false,
+                success:function(response){
+                    var response = $.parseJSON(response);
+                    if(response.status ==  true){
+                        $('.remove_val').remove();
+                        location.reload();
+                    }else{
+                        $('.remove_val').remove();
+                        if(response.data != ''){
+                            var errorFocus = '';
+                            var errors = response.data;
+                            $.each(errors, function(key, value){
+                                if(value!=''){
+                                    errorFocus = key;
+                                }
+                                $('#error_'+key).closest('div').append('<div class="text text-danger remove_val">'+value+'</div>');
+                            }); 
+                            $('#'+errorFocus).focus();  
+                        }  
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+</div>

@@ -1,0 +1,350 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<div class="card">
+    <div class="card-block">
+        <diiv class="tab-container">
+            <!--CONTROL TABS START-->
+            <ul class="nav nav-tabs nav-fill" role="tablist">
+                <li class="nav-item col-md-12 p-0 text-left">
+                    <a class="nav-link allDt active" data-toggle="tab" href="#allclass-tab" role="tab"><i class="zmdi zmdi-format-align-justify zmdi-hc-fw"></i> 
+                        <?php echo get_phrase('student_ledger');?>
+                    </a>
+                </li>
+            </ul>
+            <div class="row mt-5 ml-2">
+                <div class="col-md-5">
+                    <div class="row">
+                        <div class="col-md-4 mt-3">
+                            <div class="">
+                                <label>Email/Student Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-8 text-left">
+                            <div class="form-group">
+                                <input type="text" class="form-control" id="studentSearch-box" autocomplete="off"/>
+                                <input type="hidden" name="student_code" id="student_code"/>
+                                <div id="error_student_code"></div>
+                                <div id="suggesstion-box"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-md-2 mt-3">
+                            <div class="">
+                                <label>Date</label>
+                            </div>
+                        </div>
+                        <div class="col-md-10">
+                            <div class="form-group">
+                                <input type="text" name="daterange" class="form-control validate[required]" id="daterange" autocomplete="off"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+           <!--CONTROL TABS END-->
+            <div class="tab-content">
+                <!--TABLE LISTING STARTS-->
+                <div class="tab-pane fade hide" id="allclass-tab">
+                    <form action="<?php echo base_url("sysadmin/ledger_payment_receipt")?>" method="post" id="selectedRows_to_print_form">
+                        <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>"  value="<?php echo $this->security->get_csrf_hash(); ?>">
+                        <input type="hidden" name="selectedRows_to_print" id="selectedRows_to_print" value="">
+                        <input type="hidden" name="selectedStudent_id" id="selectedStudent_id" value="">
+                    </form>
+                    <div class="table-responsive">
+                        <table id="studentLedgerDatatable2" class="display select table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th><input name="select_all" value="1" type="checkbox"></th>
+                                    <th><?php echo get_phrase('date');?></th>
+                                    <th><?php echo get_phrase('transaction_id');?></th>
+                                    <th><?php echo get_phrase('particulars');?></th>
+                                    <th><?php echo get_phrase('credit');?></th>
+                                    <th><?php echo get_phrase('debit');?></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+                <!--TABLE LISTING ENDS-->
+            </div>    
+        </div>
+    </div>
+</div>
+<script>
+$(document).ready(function() {
+    var rows_selected = [];
+    var table = $('#studentLedgerDatatable2').DataTable( {
+        autoWidth: !1,
+        responsive: !0,
+        lengthMenu: [
+            [15, 30, 45, 100],
+            ["15 Rows", "30 Rows", "45 Rows", "100 Rows"]
+        ],
+        language: {
+            searchPlaceholder: "Search for records..."
+        },
+        dom: "Blfrtip",
+        buttons: [{
+            extend: "excelHtml5",
+            title: "Export Data",
+            exportOptions: {
+                columns: [ 1, 2, 3, 4, 5 ]
+            }
+        }, {
+            extend: "csvHtml5",
+            title: "Export Data",
+            exportOptions: {
+                columns: [ 1, 2, 3, 4, 5 ]
+            }
+        }, {
+            extend: "print",
+            title: "",
+            exportOptions: {
+                columns: [ 1, 2, 3, 4, 5 ]
+            }
+        }],
+        initComplete: function(a, b) {
+            $(this).closest(".dataTables_wrapper").prepend('<div class="dataTables_buttons hidden-sm-down actions"><span class="actions__item zmdi zmdi-print" id="print_student_ledger"/><span class="actions__item zmdi zmdi-fullscreen" data-table-action="fullscreen" /></div>')
+        },
+        //"processing": true,
+        "serverSide": true,
+        "ajax":{
+            url :'<?php echo base_url("sysadmin/getStudentLedgerData_Datatable")?>',
+            type: "post",
+            "data": function ( d ) {
+              rows_selected = [];
+              return $.extend( {}, d, {
+                "student_code": $('#student_code').val(),
+                "daterange": $('#daterange').val(),
+                "<?php echo $this->security->get_csrf_token_name(); ?>" : "<?php echo $this->security->get_csrf_hash(); ?>"
+              });
+            }
+        },
+        "columnDefs": [ {
+          "targets": 3,
+          "bVisible": false
+        } ],
+        "aoColumns": [
+        {
+            "bVisible": true, 
+            "bSearchable": false, 
+            "bSortable": false, 
+            'width': '1%',
+            'className': 'dt-body-center',
+            'render': function (data, type, full, meta){
+             return '<input type="checkbox">';
+            }
+     },
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": false, "bSearchable": true, "bSortable": true},
+        {"bVisible": false, "bSearchable": true, "bSortable": false},
+        ],
+    });
+    $("body").on("click", "[data-table-action]", function(a) {
+        a.preventDefault();
+        var b = $(this).data("table-action");
+        if ("print" === b && $(this).closest(".dataTables_wrapper").find(".buttons-print").trigger("click"), "fullscreen" === b) {
+            var c = $(this).closest(".card");
+            c.hasClass("card--fullscreen") ? (c.removeClass("card--fullscreen"), $("body").removeClass("data-table-toggled")) : (c.addClass("card--fullscreen"), $("body").addClass("data-table-toggled"))
+        }
+    });
+    $('input[name="daterange"]').daterangepicker({ 
+        autoUpdateInput: false,
+        locale: {
+            format: 'YYYY-MM-DD',
+            cancelLabel: 'Clear'
+        }
+    });
+    $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' to ' + picker.endDate.format('YYYY-MM-DD'));
+        if($('#student_code').val()!=''){
+            var i1 =$('#search_class_id').attr('data-column');
+            var v1 =$('#student_code').val();
+            
+            var i2 =$(this).attr('data-column');
+            var v2 =$('#daterange').val();
+            table.columns(i2,i1).search(v2,v1).draw();
+            $('#allclass-tab').removeClass('hide');
+            $('#allclass-tab').addClass('active show'); 
+        }else{
+            table.clear().draw();
+            $.growl.error({message:'Please Select Email/Student Code'}); 
+        }
+    });
+    // Handle click on checkbox
+   $('#studentLedgerDatatable2 tbody').on('click', 'input[type="checkbox"]', function(e){
+      var $row = $(this).closest('tr');
+
+      // Get row data
+      var data = table.row($row).data();
+
+      // Get row ID
+      var rowId = data[0];
+      // Determine whether row ID is in the list of selected row IDs
+      var index = $.inArray(rowId, rows_selected);
+
+      // If checkbox is checked and row ID is not in list of selected row IDs
+      if(this.checked && index === -1){
+         rows_selected.push(rowId);
+
+      // Otherwise, if checkbox is not checked and row ID is in list of selected row IDs
+      } else if (!this.checked && index !== -1){
+         rows_selected.splice(index, 1);
+      }
+
+      if(this.checked){
+         $row.addClass('selected');
+      } else {
+         $row.removeClass('selected');
+      }
+      // Update state of "Select all" control
+      updateDataTableSelectAllCtrl(table);
+      // Prevent click event from propagating to parent
+      e.stopPropagation();
+   });
+   // Handle click on table cells with checkboxes
+   $('#studentLedgerDatatable2').on('click', 'tbody td, thead th:first-child', function(e){
+      $(this).parent().find('input[type="checkbox"]').trigger('click');
+   });
+   // Handle click on "Select all" control
+   $('thead input[name="select_all"]', table.table().container()).on('click', function(e){
+      if(this.checked){
+         $('#studentLedgerDatatable2 tbody input[type="checkbox"]:not(:checked)').trigger('click');
+      } else {
+         $('#studentLedgerDatatable2 tbody input[type="checkbox"]:checked').trigger('click');
+      }
+
+      // Prevent click event from propagating to parent
+      e.stopPropagation();
+   });
+   // Handle table draw event
+   table.on('draw', function(){
+      // Update state of "Select all" control
+      updateDataTableSelectAllCtrl(table);
+   });
+   // Handle print event
+   $('body').on('click', '#print_student_ledger', function(e){
+      var selectedStudent_id = $('#student_code').val();
+      $('#selectedStudent_id').val(selectedStudent_id);
+      $('#selectedRows_to_print').val(rows_selected);
+      var selectedRows_to_print = $('#selectedRows_to_print').val();
+      if(selectedRows_to_print!=''){
+          //$('#selectedRows_to_print_form').submit();
+          var form = new FormData($(this)[0]);
+          form.append('<?php echo $this->security->get_csrf_token_name(); ?>', '<?php echo $this->security->get_csrf_hash(); ?>');
+          form.append('selectedRows_to_print', rows_selected);
+          form.append('selectedStudent_id', selectedStudent_id);
+          $.ajax({
+              url: '<?php echo site_url();?>sysadmin/student_ledger_payment_receipt',
+              data: form,
+              processData:false,
+              contentType:false,
+              type:'POST',
+              cache:false,
+              success:function(response){
+                  $('.remove_val').remove();
+                  var response = $.parseJSON(response);
+                  if(response.status ==  true){
+                      var printContents = response.data;
+                      var WindowObject = window.open('', "PrintWindow");
+                      WindowObject.document.write('<html><head><title></title></head><body>');
+                      WindowObject.document.writeln(printContents);
+                      WindowObject.document.write('</body></html>');
+                      WindowObject.document.close();
+                      WindowObject.focus();
+                      WindowObject.print();
+                      WindowObject.close();
+                  }else{ 
+                    $.growl.error({message:response.message});
+                  }
+              }
+          });
+      }else{
+        $.growl.error({message:'Please select atleast one checkbox to print.'}); 
+      }
+   });
+    $('input[name="daterange"]').on('cancel.daterangepicker', function(ev, picker) {
+      $(this).val('');
+    });
+    // AJAX call for autocomplete 
+    $("#studentSearch-box").keyup(function(){
+        $.ajax({
+            type: "POST",
+            url: "<?php echo base_url() . 'sysadmin/autoSuggestStudentRequest'; ?>",
+            data:'keyword='+$(this).val(),
+            beforeSend: function(){
+                $("#studentSearch-box").css("background","#FFF url(LoaderIcon.gif) no-repeat 165px");
+            },
+        success: function(data){
+            $("#suggesstion-box").show();
+            $("#suggesstion-box").html(data);
+            $("#studentSearch-box").css("background","#FFF");
+        }
+        }); 
+        $('#student_code').val('');
+    });
+    $('#suggesstion-box').on('click','.autoSuggestUl .dropdown-item',function(){
+        if($('#student_code').val()!=''){
+            var i1 =$('#search_class_id').attr('data-column');
+            var v1 =$('#student_code').val();
+
+            var i2 =$(this).attr('data-column');
+            var v2 =$('#daterange').val();
+            table.columns(i2,i1).search(v2,v1).draw();
+            $('#allclass-tab').removeClass('hide');
+            $('#allclass-tab').addClass('active show'); 
+        }else{
+            table.clear().draw();
+            $.growl.error({message:'Please Select Email/Student Code'}); 
+        }
+    });
+});
+function updateDataTableSelectAllCtrl(table){
+   var $table             = table.table().node();
+   var $chkbox_all        = $('tbody input[type="checkbox"]', $table);
+   var $chkbox_checked    = $('tbody input[type="checkbox"]:checked', $table);
+   var chkbox_select_all  = $('thead input[name="select_all"]', $table).get(0);
+
+   // If none of the checkboxes are checked
+   if($chkbox_checked.length === 0){
+      chkbox_select_all.checked = false;
+      if('indeterminate' in chkbox_select_all){
+         chkbox_select_all.indeterminate = false;
+      }
+
+   // If all of the checkboxes are checked
+   } else if ($chkbox_checked.length === $chkbox_all.length){
+      chkbox_select_all.checked = true;
+      if('indeterminate' in chkbox_select_all){
+         chkbox_select_all.indeterminate = false;
+      }
+
+   // If some of the checkboxes are checked
+   } else {
+      chkbox_select_all.checked = true;
+      if('indeterminate' in chkbox_select_all){
+         chkbox_select_all.indeterminate = true;
+      }
+   }
+}
+//To select student name
+function selectStudent(studentID,studentName) {
+    $("#studentSearch-box").val(studentName);
+    $("#student_code").val(studentID);
+    $("#suggesstion-box").hide();
+}
+function closeSearchBox() {
+    $("#studentSearch-box").val('');
+    $("#student_code").val('');
+    $("#suggesstion-box").hide();
+}
+</script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />

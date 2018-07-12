@@ -1,0 +1,40 @@
+public function post_file_upload($files,$post_id = null) {
+        $this->load->library('upload');
+        $final_files_data = array();
+        $number_of_files_uploaded = count($files);
+        for ($i = 0; $i < $number_of_files_uploaded; $i++) :
+          $_FILES['userfile']['name']     = $_FILES['post_photos']['name'][$i];
+          $_FILES['userfile']['type']     = $_FILES['post_photos']['type'][$i];
+          $_FILES['userfile']['tmp_name'] = $_FILES['post_photos']['tmp_name'][$i];
+          $_FILES['userfile']['error']    = $_FILES['post_photos']['error'][$i];
+          $_FILES['userfile']['size']     = $_FILES['post_photos']['size'][$i];
+          $new_file_name = mt_rand().strtotime(date("Y-m-d H:i:s"));
+          $config = array(
+            'file_name'     => $new_file_name,
+            'allowed_types' => '*',
+            'max_size'      => 3000,
+            'overwrite'     => FALSE,
+            /* temp path to upload post files */
+            'upload_path'
+                => FCPATH.'assets/uploads/post_photos/post_temp'
+          );
+
+          $this->upload->initialize($config);
+          if(!$this->upload->do_upload()):
+            $error = array('error' => $this->upload->display_errors());
+          else :
+            $file_name = $this->upload->data('file_name');
+            $raw_name = $this->upload->data('raw_name');
+            $file_ext = $this->upload->data('file_ext');
+            $resizeimg = $this->resizePostUploadedImage($file_name,$raw_name);
+            if($resizeimg){
+                $file_name = $resizeimg.'_thumb'.$file_ext;
+            }
+            $final_files_data[] = $file_name;
+            if($post_id!=''){
+                $this->User_model->addUploadedPostDocument(array('file_name' => $file_name,'post_id' => $post_id),$post_id);
+            }
+          endif;
+        endfor;
+        return $final_files_data;
+    }c

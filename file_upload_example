@@ -1,0 +1,544 @@
+{% extends "templates/home.twig" %}
+{% block style%}
+<link href="{{ base_url('assets/global/plugins/jquery-validation/css/validation.css') }}" rel="stylesheet" type="text/css" />
+<link rel='stylesheet' href="{{ base_url() }}assets/css/file_upload.css"/>
+<link href="{{ base_url() }}assets/global/plugins/bootstrap-datepicker/css/bootstrap-datepicker.css" rel="stylesheet" type="text/css" />
+<style>
+    .datepicker.datepicker-dropdown.dropdown-menu {
+    	z-index: 98;
+    }
+</style>
+{%endblock%}
+{% block body %}
+<section class="section_cmn my_account_sec">      
+	<div class="container">
+	    <div class="proDetail_tabs">
+			<!-- Nav tabs -->
+			<ul class="nav nav-tabs" role="tablist">
+				<li role="presentation" class="active"><a href="{%if dashboard_tabs %}javascript:open_my_ads(){%else%}{{base_url('dashboard')}}{%endif%}">My Ads</a></li>
+				<li role="presentation"><a href="{{base_url('applied_ads')}}">Applied Ads</a></li>
+				<li role="presentation"><a href="{{base_url('message')}}">Message</a></li>
+				<li role="presentation" class="{%if dashboard_tabs %}hide{%endif%}"><a href="{{base_url('billing')}}">Billing</a></li>
+				<li role="presentation" class="{%if dashboard_tabs %}hide{%endif%}""><a href="{{base_url('setting')}}">Setting</a></li>
+			</ul>
+			<!-- Tab panes -->
+			<div class="tab-content">
+		        <div role="tabpanel" class="tab-pane {%if (not posts_data and not dashboard_tabs) or (session.flashdata('be_salty_list')) %}active{%endif%}" id="myads_tab">
+					<div class="row">
+						<div class="col-md-12">
+					        <button href="#addads_tab" aria-controls="Addads_tab" role="tab" data-toggle="tab" class="btn myaccount_action_btn pull-right"><i class="fa fa-plus"></i> {{ add_new_post_label }}</button>
+					    </div>
+					</div><br>
+					<div class="row">
+						<div class="col-md-12">
+							<div class="table-responsive">
+								<table id="myAdDataTable" class="table table-striped table-bordered">
+								    <thead>
+								        <tr>
+								            <th>Title</th>
+								            <th>Category</th>
+								            <th>Is Featured</th>
+								            <th>Expired on</th>
+								            <th>Type</th>
+								            <th>Created</th>
+								            <th>Action</th>
+								        </tr>
+								    </thead>
+								    <tbody></tbody>
+								    <tfoot></tfoot>
+								</table>
+							</div>
+						</div>
+					</div>
+					<form name="delete_post" method="post" action="{{base_url('user/delete_post')}}">
+					    <input type="hidden" name="delete_id" value="">
+					</form>
+		        </div>
+		        <div role="tabpanel" class="tab-pane {%if (posts_data or dashboard_tabs)  and (not session.flashdata('be_salty_list')) %}active{%endif%}" id="addads_tab">
+		        	<div class="row">
+		        		<div class="col-md-12">
+							<h3 class="page_tab_heading">{{tab_title}}</h3>
+					    </div>
+					</div><br>
+					<div class="row">
+						<div class="col-md-12">
+							<form class="form-horizontal form-label-left validate" method="post" id="form-post-submit" action="" enctype="multipart/form-data">
+							    <input type="hidden" name="post_id" value="{%if posts_data.post_id %} {{posts_data.post_id}} {% endif %}">
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_title">Ad Title<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <input type="text" class="form-control" value="{%if posts_data.post_title %}{{set_value('post_title', posts_data.post_title)}}{% else %}{{set_value('post_title')}}{% endif %}" name="post_title" id="post_title" required="">
+							        </div>
+							    </div>
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ftl">Category<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <select class="form-control" name="category_id" id="category_id" required="">
+							                <option value="">--Category--</option>
+							                {% if category_list %}
+									        {%set categorycount = 0 %}
+									          {% for categorydata in category_list %}
+									          	<option value="{{categorydata.category_id}}" {%if (posts_data.category_id and posts_data.category_id==categorydata.category_id) %}selected{%else%}{{set_select('category_id', categorydata.category_id)}}{%endif%} data-cat-val="{{categorydata.category_title}}"">{{categorydata.category_title}}</option>
+
+									              {% if child_category_list[categorycount] %}
+									                  {% for childdata in child_category_list[categorycount] %}
+									                    {%if (childdata.parent_category_id == categorydata.category_id) %}
+									                    	<option value="{{childdata.child_id}}" {%if (posts_data.category_id and posts_data.category_id==childdata.child_id) %}selected{%else%}{{set_select('category_id', childdata.child_id)}}{%endif%} data-cat-val="{{childdata.child_title}}">-- {{childdata.child_title}}</option>
+									                    {%endif%}
+									                  {% endfor %}
+									              {% endif %}
+									              {%set categorycount = categorycount+1 %}
+									          {% endfor %}
+									        {% endif %}
+							            </select>
+							        </div>
+							    </div>
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_description">Ad Description<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <textarea class="form-control"  rows="4" name="post_description" id="post_description" required="">{%if posts_data.post_description %}{{set_value('post_description', posts_data.post_description)}}{%else%}{{set_value('post_description')}}{%endif%}</textarea>
+							            {{form_error('post_description')}}
+							        </div>
+							    </div>
+							    <div class="form-group mb-0">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_description"> </label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <div class="mt-radio-inline">
+							                <label class="mt-radio">
+							                    <input type="radio" value="fixed_price" name="post_price_type"{%if posts_data.post_fixed_price %}checked{%elseif posts_data is not defined %}checked{%endif%}> Fixed Price
+							                    <span></span>
+							                </label>
+							                <label class="mt-radio">
+							                    <input type="radio" value="bidding_method" name="post_price_type"{%if posts_data.post_bidding_price %}checked{%endif%}> Bidding Method
+							                    <span></span>
+							                </label>
+							            </div>
+							        </div>
+							    </div>
+							    <div id="fixed_price_box" class="{%if posts_data.post_bidding_price %}hide{%endif%}">
+							        <div class="form-group">
+							            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_fixed_price">Fixed Price<span class="required">*</span></label>
+							            <div class="col-md-7 col-sm-7 col-xs-12">
+							                <input type="number" class="form-control" value="{%if posts_data.post_fixed_price %}{{set_value('post_fixed_price',posts_data.post_fixed_price)}}{%else%}{{set_value('post_fixed_price')}}{%endif%}" name="post_fixed_price" id="post_fixed_price" required="">
+							                {{form_error('post_fixed_price')}}
+							            </div>
+							        </div>
+							    </div>
+							    <div class="{%if not posts_data.post_bidding_price %}hide{%endif%}" id="bidding_method_box">
+							        <div class="form-group">
+							            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_bidding_price">Bidding Price<span class="required">*</span></label>
+							            <div class="col-md-7 col-sm-7 col-xs-12">
+							                <input type="number" class="form-control" value="{%if posts_data.post_bidding_price %}{{set_value('post_bidding_price', posts_data.post_bidding_price)}}{%else%}{{set_value('post_bidding_price')}}{%endif%}" name="post_bidding_price" id="post_bidding_price" required="">
+							                {{form_error('post_bidding_price')}}
+							            </div>
+							        </div>
+							        <div class="form-group">
+							            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_bidding_min_price">Minimum Bidding Price<span class="required">*</span></label>
+							            <div class="col-md-7 col-sm-7 col-xs-12">
+							                <input type="number" class="form-control" value="{%if posts_data.post_bidding_min_price %}{{set_value('post_bidding_min_price', posts_data.post_bidding_min_price)}}{%else%}{{set_value('post_bidding_min_price')}}{%endif%}" name="post_bidding_min_price" id="post_bidding_min_price" lessThanEqualTo="#post_bidding_price" required="">
+							                {{form_error('post_bidding_min_price')}}
+							            </div>
+							        </div>
+							        <div class="form-group">
+							            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_bidding_end_date">Bidding End Date<span class="required">*</span></label>
+							            <div class="col-md-7 col-sm-7 col-xs-12" id="datePicker_col">
+							                <input id="post_bidding_end_date" type="text" name="post_bidding_end_date" class="form-control" value="{%if posts_data %}{{posts_data.post_bidding_end_date|date("d-m-Y")}}{%endif%}" placeholder="End Date">
+							                {{form_error('post_bidding_end_date')}}
+							            </div>
+							        </div>
+							    </div>
+							    {%if (posts_data.post_type and posts_data.post_type=='normal') or posts_data is empty %}
+							    <div class="form-group mb-0">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="post_description">Add as a Featured Ad </label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <div class="mt-radio-inline">
+							                <label class="mt-radio">
+							                    <input type="radio" value="yes" name="make_featured_post" {%if (posts_data.post_type and posts_data.post_type=='featured') %}checked{%endif%}> Yes
+							                    <span></span>
+							                </label>
+							                <label class="mt-radio">
+							                    <input type="radio" value="no" name="make_featured_post" {%if (posts_data.post_type and posts_data.post_type=='normal') %}checked{%elseif posts_data.post_type is empty %}checked{%endif%}> No
+							                    <span></span>
+							                </label>
+							            </div>
+							        </div>
+							    </div>
+							    <div class="{%if (posts_data.post_type and posts_data.post_type=='featured')%}{{''}}{%else%}{{'hide'}}{%endif%}" id="feature_list_box">
+							        <div class="form-group">
+							            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="ftl">Choose feature Ad plan<span class="required">*</span></label>
+							            <div class="col-md-7 col-sm-7 col-xs-12">
+							                <select class="form-control" name="feature_rule_id" id="feature_rule_id" required="">
+							                    <option value="">--Category--</option>
+							                    {%for fpdata in post_feature_list %}
+							                        {%set durationlabel = fpdata.feature_rule_duration==1 ? 'day' : 'days' %}
+							                    <option value="{{fpdata.feature_rule_id}}" {%if (posts_data.feature_rule_id and posts_data.feature_rule_id == fpdata.feature_rule_id) %}selected{%else%}{{set_select('feature_rule_id', fpdata.feature_rule_id)}}{%endif%} data-duration="{{fpdata.feature_rule_duration}}" data-charge="{{fpdata.feature_rule_charges}}">{{fpdata.feature_rule_duration~' '~durationlabel~'($'~fpdata.feature_rule_charges~')'}}</option>
+							                    {%endfor%}
+							                </select>
+							            </div>
+							        </div>
+							    </div>
+							    {%endif%}
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="contact_name">Name<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <input type="text" class="form-control" value="{%if posts_data.contact_name %}{{set_value('contact_name', posts_data.contact_name)}}{%elseif user_contact_details %}{{set_value('contat_name', user_contact_details.first_name~' '~user_contact_details.last_name)}}{%else%}{{set_value('contact_name')}}{%endif%}" name="contact_name" id="contact_name" required="">
+							            {{form_error('contact_name')}}
+							        </div>
+							    </div>
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="phone_number">Phone Number<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <input type="text" class="form-control" value="{%if posts_data.phone_number %}{{set_value('phone_number', posts_data.phone_number)}}{%elseif user_contact_details %}{{set_value('contat_name', user_contact_details.mobile_number)}}{%else%}{{set_value('phone_number')}}{%endif%}" name="phone_number" id="phone_number" required="">
+							            {{form_error('phone_number')}}
+							        </div>
+							    </div>
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="city">City<span class="required">*</span></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							            <input type="text" class="form-control" value="{%if posts_data.city %}{{set_value('city', posts_data.city)}}{%else%}{{set_value('city')}}{%endif%}" name="city" id="city" required="">
+							            {{form_error('city')}}
+							        </div>
+							    </div>
+							    <div class="form-group">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="city">Upload Photos <br><small>(File size : 513 X 513 )</small></label>
+							        <div class="col-md-7 col-sm-7 col-xs-12">
+							        {%if posts_photos%} 
+							            {%for photolist in posts_photos %}
+							        <div class="fileinput fileinput-exists col-md-6 pl-0" data-provides="fileinput">
+							            <div class="fileinput-preview thumbnail" data-trigger="fileinput" style="width: 100%; height: 150px;">
+							                <img src="{{base_url('assets/uploads/post_photos/'~posts_data.user_id~'/post_222X252/'~photolist.file_name)}}">
+							            </div>
+							            <div>
+							                <input type="hidden" class="selected_image" name="selected_image" value="{{base_url('assets/global/img/default_post.jpg')}}">
+							                <input type="hidden" class="photo_id" name="photo_id" value="{{photolist.photo_id}}">
+							                <span class="btn green myaccount_action_btn btn-file"><span class="fileinput-new">Select image</span><span class="fileinput-exists">Change</span>
+							                <input type="hidden" value="" name="">
+							                <input type="file" name="post_photos[]" aria-invalid="false" class="valid" accept="image/x-png,image/gif,image/jpeg"></span>
+							                <a href="#" class="btn btn-default fileinput-exists deletethisphoto removeContent" data-dismiss="fileinput">Remove</a>
+							            </div>
+							        </div>
+							        	{%endfor%}
+							       	{%else%}
+							        <div class="fileinput fileinput-new col-md-6 pl-0" data-provides="fileinput">
+							            <div class="fileinput-preview thumbnail" data-trigger="fileinput" style="width: 100%; height: 150px;">
+							                <img src="{{base_url('assets/global/img/default_post.jpg')}}">
+							            </div>
+							            <div>
+							                <input type="hidden" class="selected_image" name="selected_image" value="{{base_url('assets/global/img/default_post.jpg')}}">
+							                <span class="btn green myaccount_action_btn btn-file"><span class="fileinput-new">Select image</span><span class="fileinput-exists">Change</span>
+							                <input type="file" name="post_photos[]" accept="image/x-png,image/gif,image/jpeg"></span>
+							                <a href="#" class="btn btn-default fileinput-exists removeContent" data-dismiss="fileinput" style="display:none !important;">Remove</a>
+							            </div>
+							        </div>
+							        {%endif%}
+							        <div id="morefileinput"></div>
+							        </div>
+							        <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3" id="file_required_error"></div>
+							        <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+							            <a href="javascript:addmorefile()"><i class="fa fa-plus-circle"></i> Add More files</a>
+							        </div>
+							    </div>
+							    {%if posts_data %}
+							    <div class="form-group mb-0">
+							        <label class="control-label col-md-3 col-sm-3 col-xs-12" for="mark_sold">&nbsp; </label>
+							        <div class="col-md-6 col-sm-6 col-xs-12">
+							            <div class="mt-checkbox-inline">
+							                <label class="mt-checkbox">
+							                    <input type="checkbox" value="1" name="mark_sold" {%if (posts_data.mark_sold and posts_data.mark_sold==1) %}checked{%endif%}> Mark as Sold
+							                    <span></span>
+							                </label>
+							            </div>
+							        </div>
+							    </div>
+							    {%endif%}
+							    {%if not posts_data %}
+							    <div class="form-group">
+							        <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+							            <label class="mt-checkbox mt-checkbox-outline">
+							                <input type="checkbox" name="tnc" id="tnc" value="1"/> I agree to the
+							                <a href="#" data-toggle="modal" data-target="#termconditions">Terms and Conditions </a>.
+							                <span></span>
+							            </label>
+							            <div id="tnc_error"></div>
+							        </div>
+							    </div>
+							    {%else%}
+							        <input type="checkbox" name="tnc" id="tnc" value="1" checked class="hide"/>
+							   	{%endif%}
+							    <hr>
+							    <div class="form-group">
+							    	<div class="col-md-5 col-sm-5 col-xs-12 text-right">
+							    		{%if paid_post_charge!='' %}<p>Ad CHARGE : ${{paid_post_charge}}</p>{%endif%}
+							    		<p class="feature_payment_detail hide">FEATURE PLAN CHARGE : $<span id="feature_paid_amount"></span> For <span id="feature_paid_duration"></span> Day(s)</p>
+							    		<p class="total_amount_detail hide">Total amount to be paid : $<span id="total_to_be_paid">{%if paid_post_charge!='' %}{{paid_post_charge}}{%endif%}</span></p>
+							    	</div>
+							        <div class="col-md-5 col-sm-5 col-xs-12 text-right">
+							            <button type="submit" class="btn btn_bg" id="post_submit_btn">Submit</button>
+							            <a href="{%if dashboard_tabs %}{{base_url('be_salty')}}{%else%}{{base_url('dashboard')}}{%endif%}" class="btn btn-outline {%if dashboard_tabs %}hide{%endif%}">Cancel</a>
+							        </div>
+							    </div>
+							</form>
+					    </div>
+					</div>
+		        </div>
+	      	</div>
+	    </div>
+  	</div>
+</section>
+<div id="termconditions" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title" style="text-align-last: center">Terms & conditions</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    {{terms_conditions.page_content|raw}}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+{% block script %}
+<script src="{{ base_url('assets/global/plugins/jquery-validation/js/jquery.validate.js') }}" type="text/javascript"></script>
+<script src="{{ base_url('assets/global/plugins/jquery-validation/init.js') }}" type="text/javascript"></script>
+<script src="{{ base_url('assets/global/plugins/jquery-validation/js/jquery.metadata.js') }}" type="text/javascript"></script>
+<script src="{{ base_url() }}assets/js/file_upload.js" type="text/javascript"></script>
+<script src="{{ base_url() }}assets/global/plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    {% if session.flashdata('error') != "" %}
+        $.bootstrapGrowl("{{ session.flashdata('error') }}",{type: 'danger',width: 'auto',align: 'right'}); 
+    {% endif %}
+    {% if session.flashdata('success') %}
+        $.bootstrapGrowl("{{ session.flashdata('success') }}",{type: 'success',width: 'auto',align: 'right'}); 
+    {% endif %}
+    {% if session.flashdata('warning') != "" %}
+        $.bootstrapGrowl("{{ session.flashdata('warning') }}",{type: 'info',width: 'auto',align: 'right'}); 
+    {% endif %}
+</script>
+<script type="text/javascript" language="javascript">
+$(document).ready(function(){
+    //get it if Status key found
+    if(localStorage.getItem("Status"))
+    {
+        $.bootstrapGrowl(localStorage.getItem("Status"),{type: 'success', width: 'auto', align: 'right'});
+        localStorage.clear();
+    }
+});
+$(document).ready(function(){
+	{%if paid_post_charge!='' %}
+		$('.total_amount_detail').removeClass('hide');
+	{%endif%}
+    var dataTable = $('#myAdDataTable').DataTable( {
+        "processing": true,
+        "serverSide": true,
+        "ajax":{
+            url :'{{ base_url("user/get_post/") }}',
+            type: "post",
+        },
+        "aoColumns": [
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": true, "bSortable": true},
+        {"bVisible": true, "bSearchable": false, "bSortable": false},
+        ],
+        "order": [[ 5, "desc" ]],
+        "fnDrawCallback": function (oSettings) {
+            customRedrawRows();
+        }
+    });
+
+    var eventdate = $('#post_bidding_end_date').datepicker({
+        format : 'dd-mm-yyyy',
+        startDate: 'today',
+        endDate: '{{max_bid_date}}',
+        autoclose: true,
+        container: '#datePicker_col',
+        todayHighlight: true,
+        orientation: 'autom',
+    });
+    $("input[name=post_price_type]").change(function(){
+        var post_price_type = $("input[name=post_price_type]:checked").val();
+        if(post_price_type=='fixed_price'){
+            $("#fixed_price_box").removeClass('hide');
+            $("#bidding_method_box").addClass('hide');
+        }
+        if(post_price_type=='bidding_method'){
+            $("#bidding_method_box").removeClass('hide');
+            $("#fixed_price_box").addClass('hide');
+        }
+    });
+    $("input[name=make_featured_post]").change(function(){
+        var make_featured_post = $("input[name=make_featured_post]:checked").val();
+        var paidPostCharge = '{{paid_post_charge}}';
+		var dataDuration = $('option:selected', $('#feature_rule_id')).attr('data-duration');
+		var dataCharge = $('option:selected', $('#feature_rule_id')).attr('data-charge');
+		$('#feature_paid_amount').html(dataCharge);
+		$('#feature_paid_duration').html(dataDuration);
+        if(make_featured_post=='yes'){
+        	{%if (posts_data.post_type and posts_data.post_type=='normal') %}
+        		$('#feature_rule_id').val('');
+        	{%endif%}
+            $("#feature_list_box").removeClass('hide');
+            if(dataCharge){
+	            $(".feature_payment_detail").removeClass('hide');
+	            var total = (+dataCharge) + (+paidPostCharge);
+	            $('#total_to_be_paid').html(total);
+            }
+        }
+        if(make_featured_post=='no'){
+            $("#feature_list_box").addClass('hide');
+            $(".feature_payment_detail").addClass('hide');
+			if(paidPostCharge==''){
+				$('.total_amount_detail').addClass('hide');
+			}else{
+				$('#total_to_be_paid').html(paidPostCharge);
+			}			
+        }
+    });
+    $('#form-post-submit').on('submit', function(e){
+        e.preventDefault();
+        var valid = $('#form-post-submit').valid();
+        var tnc_check = $("input[name=tnc]:checked").val();
+        if(tnc_check=='1' && valid==true){
+            var valid = $('#form-post-submit').valid();
+            if(valid==true){
+                var form = new FormData($('#form-post-submit')[0]);
+                $.ajax({
+                    url: '{{base_url('user/add_post_action')}}',
+                    data: form,
+                    processData:false,
+                    contentType:false,
+                    type:'POST',
+                    cache:false,
+                    beforeSend:function(){
+                    	$("#post_submit_btn").attr("title","Processing...").attr("disabled","disabled").css("cursor","wait");
+                    },
+                    success:function(response){
+                        var response = $.parseJSON(response);
+                        $('.remove_val').remove();
+                        if(response.status ==  true){
+                            if(response.payment_request=='required'){
+                                location.replace('{{base_url()}}user/payment/'+response.post_id);
+                            }else{
+                            	if(response.request_type=='edit'){
+	                        		var rows = dataTable.clear().draw();
+	                        		$.bootstrapGrowl(response.message,{type: 'success', width: 'auto', align: 'right'});
+                            	}else{
+	                            	localStorage.setItem("Status",response.message);
+	                            	location.reload();
+                            	}
+                            }
+                        }else{
+                            if(response.data != ''){
+                                var errors = response.data;
+                                $.each(errors, function(key, value){
+                                	if(key=='post_photos'){
+                                		$('#file_required_error').html('<div class="text remove_val">'+value+'</div>');
+                                	}else{
+                                    	$('#'+key).closest('div').append('<div class="text remove_val">'+value+'</div>');
+                                	}
+                                }); 
+                            }
+                        }
+                    },
+                    complete:function(){
+                    	$("#post_submit_btn").removeAttr("title").removeAttr("disabled").removeAttr('style');
+                    }
+                });
+            }
+        }else{
+            $('#tnc_error').html('<span class="server_validate_error">This field is required.</span>');
+        }
+        if(tnc_check=='1'){
+            $('#tnc_error').html('');
+        }
+    });
+    $("body").on("click", ".deletefile", function(){
+       $(this).closest('.fileinput').remove();
+    });
+    $("body").on("click", ".removeContent", function(){
+        var numInputs = $('.fileinput').length;
+        if(numInputs>1){
+            $(this).closest('.fileinput').remove();
+        }
+    });
+    $("body").on("click", ".deletethisphoto", function(){
+        var photo_id = $(this).siblings('.photo_id').val();
+        if(photo_id!=''){
+            deleteFiles(photo_id);
+        }
+    });
+    $("body").on("click", ".fileinput-exists.removeContent", function(){
+        var numInputs = $('.fileinput').length;
+        console.log(numInputs);
+        if(numInputs==1){
+            $('.fileinput-exists.removeContent').attr('style', 'display: none !important');
+        }
+    });
+    jQuery.validator.addMethod("lessThanEqualTo", function( value, element, param ) {
+		var target = $( param );
+		if ( this.settings.onfocusout ) {
+			target.unbind( ".validate-lessThanEqualTo" ).bind( "blur.validate-lessThanEqualTo", function() {
+				$( element ).valid();
+			});
+		}
+		return parseInt(value) <= parseInt($(param).val());
+	}, "The Minimum Bidding Price field must contain a number less than or equal to bidding price");
+	$('#feature_rule_id').on('change',function(){
+		var paidPostCharge = '{{paid_post_charge}}';
+		var dataDuration = $('option:selected', this).attr('data-duration');
+		var dataCharge = $('option:selected', this).attr('data-charge');
+		$('#feature_paid_amount').html(dataCharge);
+		$('#feature_paid_duration').html(dataDuration);
+		$('.feature_payment_detail').removeClass('hide');
+		var total = (+dataCharge) + (+paidPostCharge);
+		$('#total_to_be_paid').html(total);
+		$('.total_amount_detail').removeClass('hide');		    		
+	});
+});
+function deletepost(id)
+{
+   if(confirm("Are you sure you want to delete this Ad ?")){
+        $('input[name=delete_id]').val(id);
+        $('form[name=delete_post]').submit();
+    }
+}
+function addmorefile() {
+    $('#morefileinput').append('<div class="fileinput fileinput-new col-md-6 pl-0" data-provides="fileinput"><div class="fileinput-preview thumbnail" data-trigger="fileinput" style="width: 100%; height: 150px;"><img src="{{base_url('assets/global/img/default_post.jpg')}}"></div><div><input type="hidden" class="selected_image" name="selected_image" value="{{base_url('assets/global/img/default_post.jpg')}}"><span class="btn green myaccount_action_btn btn-file"><span class="fileinput-new">Select image</span><span class="fileinput-exists">Change</span><input type="file" name="post_photos[]" accept="image/x-png,image/gif,image/jpeg"></span> <a href="#" class="btn btn-default fileinput-exists removeContent" data-dismiss="fileinput">Remove</a></div></div>');
+    $('.fileinput-exists.removeContent').removeAttr('style');
+}
+function deleteFiles(photo_id) {
+    var form = new FormData();
+    //console.log(photo_id);return false;
+    form.append('photo_id', photo_id);
+    $.ajax({
+        url: '{{base_url('user/delete_post_photo')}}',
+        data: form,
+        processData:false,
+        contentType:false,
+        type:'POST',
+        cache:false,
+        success:function(response){
+            var response = $.parseJSON(response);
+            if(response.status ==  true){
+            }else{
+            }
+        }
+    });
+}
+function customRedrawRows(){
+    var row1 = $('.post_expired').closest('tr');
+    row1.addClass('post_expired_row bg-danger');
+}
+</script>
+{% endblock %}

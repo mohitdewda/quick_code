@@ -1,0 +1,1041 @@
+<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+
+class Crud_model extends CI_Model {
+
+	private static $_table_prefix = null;
+	private static $_mydb_connection = null;
+
+	function __construct()
+    {
+        parent::__construct();
+
+        $this->load->dbforge();
+		$this->load->dbutil();
+
+		if($this->session->userdata('schoolSessionData'))
+        {
+            $schoolSessionData = $this->session->userdata('schoolSessionData');
+            self::$_table_prefix = 's'.$schoolSessionData['session_name'].'_';
+
+            // for select backup data
+            $marksbackup = $this->load->database('backup', true);
+
+            self::$_mydb_connection = $marksbackup;
+        }
+        else
+        {
+            self::$_table_prefix = '';
+            self::$_mydb_connection = $this->db;
+        }
+    }
+	
+	function clear_cache()
+	{
+        $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+        $this->output->set_header('Pragma: no-cache');
+	}
+	function get_type_name_by_id($type,$type_id='',$field='name')
+	{
+		return	@self::$_mydb_connection->get_where(self::$_table_prefix.$type,array($type.'_id'=>$type_id))->row()->$field;	
+	}
+	
+	////////STUDENT/////////////
+	function get_students($class_id)
+	{
+		if($class_id!='')
+		$query	= self::$_mydb_connection->select('student_id', FALSE)->from(self::$_table_prefix.'student')->where(array('class_id' => $class_id, 'delete_status !=' => 1, 'student_status' => 1))->get()->result_array();
+		return $query;
+	}
+	
+	function get_student_info($student_id)
+	{
+		if($student_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'student' , array('student_id' => $student_id));
+		return $query->result_array();
+	}
+	/////////TEACHER/////////////
+	function get_teachers()
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'teacher');
+		return $query->result_array();
+	}
+	function get_teacher_name($teacher_id)
+	{
+		if($teacher_id!='')
+		return self::$_mydb_connection->get_where(self::$_table_prefix.'teacher' , array('teacher_id' => $teacher_id))->row()->name;
+	}
+	function get_teacher_info($teacher_id)
+	{
+		if($teacher_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'teacher' , array('teacher_id' => $teacher_id));
+		return $query->result_array();
+	}
+	
+	//////////SUBJECT/////////////
+	function get_subjects()
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'subject');
+		return $query->result_array();
+	}	
+	function get_subject_info($subject_id)
+	{
+		if($subject_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'subject' , array('subject_id' => $subject_id));
+		return $query->result_array();
+	}
+	function get_subjects_by_class($class_id)
+	{
+		if($class_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'subject' , array('class_id' => $class_id));
+		return $query->result_array();
+	}
+	function get_subject_name_by_id($subject_id)
+	{
+		if($subject_id!='')
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'subject' , array('subject_id' => $subject_id))->row()->name;
+	}
+	////////////CLASS///////////
+	function get_class_name($class_id)
+	{
+		if($class_id!='')
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'class' , array('class_id' => $class_id))->row()->name;
+	}
+	function get_class_name_numeric($class_id)
+	{
+		if($class_id!='')
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'class' , array('class_id' => $class_id))->row()->name_numeric;
+	}
+	function get_classes()
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'class');
+		return $query->result_array();
+	}	
+	function get_class_info($class_id)
+	{
+		if($class_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'class' , array('class_id' => $class_id));
+		return $query->result_array();
+	}
+	
+	//////////EXAMS/////////////
+	function get_exams()
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'exam');
+		return $query->result_array();
+	}	
+	function get_exam_info($exam_id)
+	{	if($exam_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'exam' , array('exam_id' => $exam_id));
+		return $query->result_array();
+	}	
+	//////////GRADES/////////////
+	function get_grades()
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'grade');
+		return $query->result_array();
+	}	
+	function get_grade_info($grade_id)
+	{
+		if($grade_id!='')
+		$query	=	self::$_mydb_connection->get_where(self::$_table_prefix.'grade' , array('grade_id' => $grade_id));
+		return $query->result_array();
+	}	
+	function get_grade($mark_obtained)
+	{
+		$query	=	self::$_mydb_connection->get(self::$_table_prefix.'grade');
+		$grades	=	$query->result_array();
+		foreach($grades as $row)
+		{
+			if($mark_obtained >= $row['mark_from'] && $mark_obtained <= $row['mark_upto'])
+				return $row;
+		}
+	}
+
+	function create_log($data)
+	{
+		$data['timestamp']	=	strtotime(date('Y-m-d').' '.date('H:i:s'));
+		$data['ip']			=	$_SERVER["REMOTE_ADDR"];
+		$location 			=	new SimpleXMLElement(file_get_contents('http://freegeoip.net/xml/'.$_SERVER["REMOTE_ADDR"]));
+		$data['location']	=	$location->City.' , '.$location->CountryName;
+		$this->db->insert('log' , $data);
+	}
+	function get_system_settings()
+	{
+		$query	=	$this->db->get('settings' );
+		return $query->result_array();
+	}
+	
+		
+	
+	////////BACKUP RESTORE/////////
+	function create_backup($type)
+	{
+		//$this->load->dbutil();
+		
+		
+		$options = array(
+                'format'      => 'txt',             // gzip, zip, txt
+                'add_drop'    => TRUE,              // Whether to add DROP TABLE statements to backup file
+                'add_insert'  => TRUE,              // Whether to add INSERT data to backup file
+                'newline'     => "\n"               // Newline character used in backup file
+              );
+		
+		 
+		if($type == 'all')
+		{
+			$tables = array('');
+			$file_name	=	'system_backup';
+		}
+		else 
+		{
+			$tables = array('tables'	=>	array($type));
+			$file_name	=	'backup_'.$type;
+		}
+
+		$backup =& $this->dbutil->backup(array_merge($options , $tables)); 
+
+
+		$this->load->helper('download');
+		force_download($file_name.'.sql', $backup);
+	}
+	
+	
+	/////////RESTORE TOTAL DB/ DB TABLE FROM UPLOADED BACKUP SQL FILE//////////
+	function restore_backup()
+	{
+		move_uploaded_file($_FILES['userfile']['tmp_name'], 'uploads/backup.sql');
+		//$this->load->dbutil();
+		
+		$prefs = array(
+            'filepath'						=> 'uploads/backup.sql',
+			'delete_after_upload'			=> TRUE,
+			'delimiter'						=> ';'
+        );
+		$restore =& $this->dbutil->restore($prefs); 
+		unlink($prefs['filepath']);
+	}
+	
+	/////////DELETE DATA FROM TABLES///////////////
+	function truncate($type)
+	{
+		if($type == 'all')
+		{
+			self::$_mydb_connection->truncate('student');
+			self::$_mydb_connection->truncate('mark');
+			self::$_mydb_connection->truncate('teacher');
+			self::$_mydb_connection->truncate('subject');
+			self::$_mydb_connection->truncate('class');
+			self::$_mydb_connection->truncate('exam');
+			self::$_mydb_connection->truncate('grade');
+		}
+		else
+		{	
+			self::$_mydb_connection->truncate($type);
+		}
+	}
+	
+	
+	////////IMAGE URL//////////
+	function get_image_url($type = '' , $id = '')
+	{
+		if(file_exists('uploads/'.$type.'_image/'.$id.'.jpg'))
+			$image_url	=	base_url().'uploads/'.$type.'_image/'.$id.'.jpg';
+		else
+			$image_url	=	base_url().'uploads/user.jpg';
+			
+		return $image_url;
+	}
+
+	//sections name by passing comma saprated string(sections id) or single section id//
+	public function get_sections_name_by_id($string = null,$nameonlybyID = null)
+    {
+    	if($nameonlybyID!='')
+    	{
+    		return	self::$_mydb_connection->get_where(self::$_table_prefix.'section' , array('section_id' => $nameonlybyID))->row()->section_name;
+    	}
+    	
+		if($string!='')
+		{
+	        $sections   =   explode(',',$string);
+	        foreach($sections as $section)
+	        {
+	            $query  =   self::$_mydb_connection->get_where(self::$_table_prefix.'section' , array('section_id' => $section))->row();
+	            if($query)
+	            	{
+	            		$array[] = $query->section_name;
+	            	}
+	            	else{ return;}
+	        }
+	        return implode(',',$array);
+	    }
+	    
+	}
+
+    /*subjects list according to classid or class and section id//for marks-attendance filtration\\ */
+    public function get_subjects_by_classANDsections($class_id, $section_id = null)
+    {
+    	$html ='';
+                
+        self::$_mydb_connection->from(self::$_table_prefix.'subject');
+        self::$_mydb_connection->where('class_id',$class_id);
+		$subject_data = self::$_mydb_connection->get()->result();
+        if(!empty($subject_data))
+        {
+        	$html .= '<option value="">Select Subject</option>';
+            foreach($subject_data as $subject_list)
+            {
+            	if(!empty($section_id))
+		        {
+		        	$subjsections = $subject_list->subject_section_id;
+		        	$sectionsarray = explode(',',$subjsections);
+		        	$key=array_search($section_id, $sectionsarray);
+                        if(FALSE !== $key)
+                        {
+							$html .= '<option value="'.$subject_list->subject_id.'">'.$subject_list->name.'</option>';
+                        }
+
+		        }
+		        else
+		        {
+	            	$html .= '<option value="'.$subject_list->subject_id.'">'.$subject_list->name.'</option>'; 	
+		        }
+            }
+        }
+        else
+        {
+            $html ='<option value="">Subjects not found</option>';
+        }
+        return $html;
+    }
+    function get_subject_name($subject_id)
+	{
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'subject' , array('subject_id' => $subject_id))->row()->name;
+	}
+	function get_student_name($student_id)
+	{
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'student' , array('student_id' => $student_id))->row()->name;
+	}
+	function get_roll_byid($student_id)
+	{
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'student' , array('student_id' => $student_id))->row()->roll;
+	}
+	function get_school_session($session_id=null)
+	{
+		if($session_id!='')
+		{
+			$current_session = $this->db->get_where('configuration',array('configuration_id' => $session_id))->result_array();
+            foreach($current_session as $sessionValue){
+               return $sessionValue['description'];
+            }
+		}
+		else
+		{
+			$current_session = $this->db->get_where('configuration',array('current_session' => 1))->result_array();
+            foreach($current_session as $sessionValue){
+               return $sessionValue['description'];
+            }	
+		}
+		
+	}
+	function get_school_sessionid($deafault_dbC = null)
+	{
+		$current_session = $this->db->get_where('configuration',array('current_session' => 1))->result_array();
+            foreach($current_session as $sessionValue){
+               return $sessionValue['configuration_id'];
+            }
+	}
+	function get_student_Rollnumber($student_id)
+	{
+		if($student_id!='')
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'student' , array('student_id' => $student_id))->row()->roll;
+	}
+	function section_value_byclass($class_id)
+	{
+		if($class_id!='')
+    	{
+    		return self::$_mydb_connection->get_where(self::$_table_prefix.'class' , array('class_id' => $class_id))->row()->sections_id;
+    	}
+	}
+	function get_finalExam_id()
+	{
+		return @self::$_mydb_connection->order_by('exam_id','DESC')->limit(1)->get(self::$_table_prefix.'exam')->row()->exam_id;
+	}
+	function get_grade_name($grade_id)
+	{
+		if($grade_id!='')
+		return self::$_mydb_connection->get_where(self::$_table_prefix.'grade' , array('grade_id' => $grade_id))->row()->name;
+	}
+
+	//select data object
+	function select_data($table, $where = null, $option = null, $data = null,$limit = null,$order_by = null,$select_columns = null)
+	{
+		if($table=='configuration' || $table=='countries' || $table=='settings' || $table=='language' || $table=='admin')
+		{
+			self::$_mydb_connection = $this->db;
+			self::$_table_prefix = '';
+		}
+		if($option == 'custom'){
+			return  self::$_mydb_connection->query($data)->result();
+			exit;
+		}
+		if($select_columns=='')
+		{
+			$select_columns ='*';
+		}
+		self::$_mydb_connection->select($select_columns);
+		self::$_mydb_connection->from(self::$_table_prefix.$table);
+			if($where != null){
+				self::$_mydb_connection->where($where);
+			}
+			if($limit != null){
+				self::$_mydb_connection->limit($limit); 
+			}
+			if($order_by != null){
+				$order_by = json_decode($order_by);
+				self::$_mydb_connection->order_by($order_by[0],$order_by[1]);
+			}		
+			
+		return self::$_mydb_connection->get()->result();
+	}
+
+	//select data array
+	function select_data_array($table, $where = null, $option = null, $data = null,$limit = null,$order_by = null,$select_columns = null)
+	{
+		if($table=='configuration' || $table=='countries' || $table=='settings' || $table=='language' || $table=='admin')
+		{
+			self::$_mydb_connection = $this->db;
+			self::$_table_prefix = '';
+		}
+		if($option == 'custom'){
+			return  self::$_mydb_connection->query($data)->result_array();
+			exit;
+		}
+		if($select_columns=='')
+		{
+			$select_columns ='*';
+		}
+		self::$_mydb_connection->select($select_columns);
+		self::$_mydb_connection->from(self::$_table_prefix.$table);
+			if($where != null){
+				self::$_mydb_connection->where($where);
+			}
+			if($limit != null){
+				self::$_mydb_connection->limit($limit); 
+			}
+			if($order_by != null){
+				$order_by = json_decode($order_by);
+				self::$_mydb_connection->order_by($order_by[0],$order_by[1]);
+			}		
+			
+		return self::$_mydb_connection->get()->result_array();
+	}
+
+	//update data MD
+	function update_data($table, $data, $where)
+    {
+    	if($table=='configuration' || $table=='countries' || $table=='settings' || $table=='language' || $table=='admin')
+		{
+			self::$_mydb_connection = $this->db;
+			self::$_table_prefix = '';
+		}
+	
+        self::$_mydb_connection->update(self::$_table_prefix.$table, $data, $where);
+        return self::$_mydb_connection->affected_rows() > 0 ? true : false;
+    }
+
+    //insert data MD
+    function insert_data($table, $data, $return_last_id = null)
+    {
+    	if($table=='configuration' || $table=='countries' || $table=='settings' || $table=='language' || $table=='admin')
+		{
+			self::$_mydb_connection = $this->db;
+			self::$_table_prefix = '';
+		}
+
+		self::$_mydb_connection->insert(self::$_table_prefix.$table, $data);
+		
+		if($return_last_id != null){
+			return self::$_mydb_connection->affected_rows() > 0 ? self::$_mydb_connection->insert_id() : false;
+		}
+		return self::$_mydb_connection->affected_rows() > 0 ? true : false;
+	}
+
+	//delete data MD
+	function delete($table, $where)
+	{
+		if($table=='configuration' || $table=='countries' || $table=='settings' || $table=='language' || $table=='admin')
+		{
+			self::$_mydb_connection = $this->db;
+			self::$_table_prefix = '';
+		}
+
+		self::$_mydb_connection->delete(self::$_table_prefix.$table, $where);
+		return self::$_mydb_connection->affected_rows() > 0 ? true : false;
+	}
+
+	//Backup marks data//
+	function download_marks_backup($tablename,$directoryname,$marksimport=null)
+	{
+		$cur_time = strtotime(date("Y-m-d H:i:s"));
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+		
+		$options = array(
+                'format'      => 'txt',             // gzip, zip, txt
+                'add_drop'    => TRUE,              // Whether to add DROP TABLE statements to backup file
+                'add_insert'  => TRUE,              // Whether to add INSERT data to backup file
+                'newline'     => "\n"               // Newline character used in backup file
+              );
+
+		if($tablename == 'selected')
+		{
+			$tables = array('tables' =>	array('class','class_routine','dormitory','exam','grade','mark','parent','payment','religion','section','student','subject','teacher','transport','noticeboard','book','transactions','fee'));
+			$file_name	=	'backup_'.$tablename.'_'.$current_sessionID.'_'.$cur_time;
+		}
+
+		$backup =& $this->dbutil->backup(array_merge($options , $tables)); 
+
+		write_file(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql', $backup);
+
+		if($marksimport=='marksbackup')
+		{
+			if($tablename == 'selected')
+			{
+				//define table array which one have used to backup
+				$backup_table_array = array('class','class_routine','dormitory','exam','grade','mark','parent','payment','religion','section','student','subject','teacher','transport','noticeboard','book','transactions','fee');
+				$table_count = count($backup_table_array);
+				$table_i=0;
+	            foreach($backup_table_array as $backup_table_name)
+	            {
+					$tableold_name = $backup_table_name;
+					$tablenew_name ='s'.$current_sessionID.'_'.$tableold_name;
+					$import_result = $this->import_marksData_todb($file_name, $directoryname, $tableold_name, $tablenew_name);
+					if($import_result==false)
+					{
+						return $import_result;
+					}
+					$table_i++;
+	            }
+	            if($table_i==$table_count)
+	            {
+	            	return $import_result;
+	            }
+	            
+			}
+
+			if($tablename != 'selected' || $tablename != 'all')
+			{
+				$tableold_name = 'mark';
+				$tablenew_name ='s'.$current_sessionID.'_'.$tableold_name;
+				$import_result = $this->import_marksData_todb($file_name, $directoryname, $tableold_name, $tablenew_name);
+				return $import_result;
+			}
+		}
+			
+	}
+
+	function import_marksData_todb($file_name, $directoryname, $tableold_name, $tablenew_name)
+	{
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+
+		// for import table sql in another database
+		$marksbackup = $this->load->database('backup', true);
+	   	
+	   	$sql = file_get_contents(FCPATH.'uploads/'.$directoryname.'/'.$file_name.'.sql');
+	   	$marksdatatoimport = explode(';', $sql);
+		array_pop($marksdatatoimport);
+		$countsql =0;
+		foreach($marksdatatoimport as $statement){
+		    $statment = $statement . ";";
+		    
+		    $sqlinsert = $marksbackup->query($statement);
+		    if($sqlinsert)
+		    {
+		    	$countsql++;
+		    }   
+		}
+
+		if(count($marksdatatoimport)==$countsql)
+		{
+			$drop_if_exist = $marksbackup->query("DROP TABLE IF EXISTS ".$tablenew_name.";");
+			if(!$marksbackup->table_exists($tablenew_name))
+			{
+				$rename_table = $marksbackup->query("RENAME TABLE ".$tableold_name." TO ".$tablenew_name."");
+				if($rename_table)
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+
+	} 
+	function updateallstudentdata()
+	{
+		$current_session = $this->get_school_sessionid();
+		$allstudents = $this->select_data('student');
+		//print_R($allstudents);die;
+		foreach($allstudents as $students)
+		{
+			$student_id = $students->student_id;
+			$student_class = $students->class_id;
+			$promote_class = $students->promote_class_id;
+			$previous_class_section = $students->class_sections_id;
+			if($promote_class!=0)
+			{
+                //check and insert previous class section in promoted class
+                $class_array = $this->db->get_where('class',array('class_id' => $promote_class))->result();
+                if($class_array)
+                {
+                    foreach($class_array as $classrow)
+                    {
+                        if(!empty($classrow->sections_id))
+                        {
+                            $classsectionarray = explode(',',$classrow->sections_id);
+                            if($previous_class_section!='')
+                            {
+                                $key=array_search($previous_class_section, $classsectionarray);
+                                if($key !== false)
+                                {
+                                    $updatedsection = implode(',', $classsectionarray);
+                                }
+                                else
+                                {
+                                    $updatedsection = implode(',', $classsectionarray).','.$previous_class_section;
+                                }
+                            }
+
+                            $this->db->where('class_id', $classrow->class_id);
+                            $query = $this->db->update('class', array('sections_id' => $updatedsection));
+                            
+                        }
+                        else
+                        {
+                            $this->db->where('class_id', $classrow->class_id);
+                            $query = $this->db->update('class', array('sections_id' => $previous_class_section));
+                        }
+                        
+                    }
+                }
+
+				$this->update_data('student',array('class_id' => $promote_class,'student_session' =>$current_session, 'promote_class_id' =>''),array('student_id' => $student_id));
+			}
+			else
+			{
+				$this->update_data('student',array('student_session' =>$current_session),array('student_id' => $student_id));
+			}
+		}
+	}
+	function get_religion_name($religion_id)
+	{
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'religion' , array('religion_id' => $religion_id))->row()->religion;
+	}
+	function get_country_name($country_id)
+	{
+		return	@$this->db->get_where('countries' , array('id' => $country_id))->row()->name;
+	}
+	function get_state_name($state_id)
+	{
+		return	@$this->db->get_where('states' , array('id' => $state_id))->row()->name;
+	}
+	function get_student_status($student_id)
+	{
+		return	self::$_mydb_connection->get_where(self::$_table_prefix.'student' , array('student_id' => $student_id))->row()->student_status;
+	}
+	//Backup marks data//
+	function session_update_backup()
+	{
+		$current_session = $this->get_school_session();
+		$current_sessionID = $this->get_school_sessionid();
+
+		$marksbackup = $this->load->database('backup', true);
+		$default_database = $this->db->database;
+        $backup_database = $marksbackup->database;
+			
+		//define table array which one have used to backup
+		$backup_table_array = array('class','class_routine','dormitory','exam','grade','mark','parent','payment','religion','section','student','subject','teacher','transport','noticeboard','book','transactions','fee');
+		$table_count = count($backup_table_array);
+		$table_i=0;
+        foreach($backup_table_array as $backup_table_name)
+        {
+			$tableold_name = $backup_table_name;
+			$tablenew_name = 's'.$current_sessionID.'_'.$tableold_name;
+
+			//for exam list
+			$drop_if_exist = $marksbackup->query("DROP TABLE IF EXISTS ".$tablenew_name.";");
+            $table_create = $this->db->query("CREATE TABLE $backup_database.$tablenew_name LIKE $default_database.$tableold_name;");
+            if($table_create==true)
+            {
+            	$table_write = $this->db->query("INSERT $backup_database.$tablenew_name SELECT * FROM $default_database.$tableold_name;");
+
+	            if($table_write==false)
+	            {
+	            	return $table_write;
+	            }
+            }
+            else
+            {
+            	return false;
+            }
+            
+			$table_i++;
+        }
+        if($table_i==$table_count)
+        {
+        	return true;
+        }         
+	}
+	function get_category_name($category_id)
+	{
+		if($category_id!='' && $category_id!=0){
+			return	self::$_mydb_connection->get_where(self::$_table_prefix.'student_category' , array('category_id' => $category_id))->row()->category_name;
+		}else{
+			return self::$_mydb_connection->get_where(self::$_table_prefix.'student_category' , array('category_id' => 1))->row()->category_name;
+		}
+	}
+
+	function get_feeCategory_name($category_id)
+	{
+		if($category_id!='' && $category_id!=0){
+			$result = self::$_mydb_connection->get_where(self::$_table_prefix.'fee_category' , array('fee_category_id' => $category_id))->row()->fee_category_title;
+			if($result){
+				return $result;
+			}
+		}
+	}
+	function getStudentData($start,$length,$order_by,$sort_by,$search,$searchByClass=null,$searchBySection=null)
+    {
+    	if($searchByClass!=''){
+    		$wherCon['class_id'] = $searchByClass;
+    	}
+    	if($searchBySection!=''){
+    		$wherCon['class_sections_id'] = $searchBySection;
+    	}
+    	$wherCon['delete_status'] =  0;
+        $this->db->select('SQL_CALC_FOUND_ROWS student_id,roll,name,address,email,blood_group,class_id,class_sections_id', FALSE)->from('student')->where($wherCon);
+        if($search) {
+
+        	$this->db->where('(roll LIKE "%'.$search.'%" OR name LIKE "%'.$search.'%" OR address LIKE "%'.$search.'%" OR blood_group LIKE "%'.$search.'%" OR email LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+	function getTeacherData($start,$length,$order_by,$sort_by,$search)
+    {
+    	$wherCon['delete_status !='] =  1;
+        $this->db->select('SQL_CALC_FOUND_ROWS teacher_id,name,email,salary,blood_group', FALSE)->from('teacher')->where($wherCon);
+        if($search) {
+        	$this->db->where('(name LIKE "%'.$search.'%" OR email LIKE "%'.$search.'%" OR salary LIKE "%'.$search.'%" OR blood_group LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getParentData($start,$length,$order_by,$sort_by,$search,$searchByClass=null,$searchBySection=null)
+    {
+    	if($searchByClass!=''){
+    		$wherCon['a.class_id'] = $searchByClass;
+    	}
+    	if($searchBySection!=''){
+    		$wherCon['a.class_sections_id'] = $searchBySection;
+    	}
+    	$wherCon['a.delete_status'] =  0;
+    	/*$wherCon['b.parent_status !='] =  2;
+    	$wherCon['b.delete_status !='] =  1;*/
+
+        $this->db->select('SQL_CALC_FOUND_ROWS a.student_id,a.roll,a.name as student_name,a.class_id,a.class_sections_id,b.parent_id,b.name as parent_name,b.email as parent_email,b.relation_with_student,b.address as parent_address,b.delete_status as parent_delete_status,b.parent_status as parent_status', FALSE)->from('student a')->join('parent b', 'a.student_id = b.student_id','LEFT')->where($wherCon);
+        if($search) {
+
+        	$this->db->where('(a.roll LIKE "%'.$search.'%" OR a.name LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR b.relation_with_student LIKE "%'.$search.'%" OR b.email LIKE "%'.$search.'%" OR b.address LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getClassData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS a.class_id,a.name as class_name,a.name_numeric,a.teacher_id,a.sections_id,b.name as teacher_name', FALSE)->from('class a')->join('teacher b', 'a.teacher_id = b.teacher_id', 'LEFT')->group_by('a.class_id');
+        if($search) {
+        	$this->db->where('(a.name LIKE "%'.$search.'%" OR a.name_numeric LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR a.sections_id LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getSectionData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS section_id,section_name', FALSE)->from('section');
+        if($search) {
+        	$this->db->where('(section_name LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getSubjectData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS a.subject_id,a.name as subject_name,b.name as class_name,c.name as teacher_name', FALSE)->from('subject a')->join('class b', 'a.class_id = b.class_id')->join('teacher c', 'a.teacher_id = c.teacher_id','LEFT');
+        if($search) {
+        	$this->db->where('(a.name LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR c.name LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getExamData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS exam_id,name,date,comment', FALSE)->from('exam');
+        if($search) {
+        	$this->db->where('(name LIKE "%'.$search.'%" OR date LIKE "%'.$search.'%" OR comment LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getExamGradeData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS grade_id,name,grade_point,mark_from,mark_upto,comment', FALSE)->from('grade');
+        if($search) {
+        	$this->db->where('(name LIKE "%'.$search.'%" OR grade_point LIKE "%'.$search.'%" OR mark_upto LIKE "%'.$search.'%" OR mark_from LIKE "%'.$search.'%" OR comment LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getReligionData($start,$length,$order_by,$sort_by,$search)
+    {
+    	$wherCon['religion_status'] =  1;
+        $this->db->select('SQL_CALC_FOUND_ROWS religion_id,religion', FALSE)->from('religion')->where($wherCon);
+        if($search) {
+        	$this->db->where('(religion LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getNoticeData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS notice_id,notice_title,DATE_FORMAT(FROM_UNIXTIME(create_timestamp), "%e %b %Y") as create_timestamp', FALSE)->from('noticeboard');
+        if($search) {
+        	$this->db->having('(notice_title LIKE "%'.$search.'%" OR create_timestamp LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getDormitoryData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS dormitory_id,name,number_of_room,description', FALSE)->from('dormitory');
+        if($search) {
+        	$this->db->where('(name LIKE "%'.$search.'%" OR number_of_room LIKE "%'.$search.'%" OR description LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getTransportData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS transport_id,route_name,number_of_vehicle,description,route_fare', FALSE)->from('transport');
+        if($search) {
+        	$this->db->where('(route_name LIKE "%'.$search.'%" OR number_of_vehicle LIKE "%'.$search.'%" OR description LIKE "%'.$search.'%" OR route_fare LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getBookData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS a.book_id,a.name as book_name,a.author,a.price,a.description,b.name as class_name, a.status as book_status', FALSE)->from('book a')->join('class b', 'a.class_id = b.class_id', 'LEFT');
+        if($search) {
+        	$this->db->where('(a.name LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR a.author LIKE "%'.$search.'%" OR a.price LIKE "%'.$search.'%" OR a.description LIKE "%'.$search.'%" OR a.status LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getFeeCategoryData($start,$length,$order_by,$sort_by,$search)
+    {
+        $this->db->select('SQL_CALC_FOUND_ROWS fee_category_id,fee_category_title,fee_recurring', FALSE)->from('fee_category');
+        if($search) {
+        	$this->db->where('(fee_category_title LIKE "%'.$search.'%" OR fee_recurring LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getFeeData($start,$length,$order_by,$sort_by,$search)
+    {
+    	$discountForStaffChild = $this->db->get_where('settings' , array('type' => 'staff_child'))->row()->description;
+    	$discountForFinanciallyWeak = $this->db->get_where('settings' , array('type' => 'financially_weak_student'))->row()->description;
+    	$discountForSibling = $this->db->get_where('settings' , array('type' => 'sibling_student'))->row()->description;
+        $this->db->select('SQL_CALC_FOUND_ROWS  a.fee_id,a.fee_category_id,a.fee_class,a.fee_section,a.fee as general_fee, fee-fee*'.$discountForStaffChild.'/100 as staff_fee, fee-fee*'.$discountForFinanciallyWeak.'/100 as financially_weak_fee, fee-fee*'.$discountForSibling.'/100 as sibling_fee,b.fee_category_title as fee_category_name,c.name as class_name, d.section_name', FALSE)->from('fee a')->join('fee_category b', 'a.fee_category_id = b.fee_category_id')->join('class c', 'a.fee_class = c.class_id')->join('section d', 'a.fee_section = d.section_id','LEFT');
+        if($search) {
+        	$this->db->having('(staff_fee LIKE "%'.$search.'%" OR sibling_fee LIKE "%'.$search.'%" OR financially_weak_fee LIKE "%'.$search.'%" OR class_name LIKE "%'.$search.'%" OR section_name LIKE "%'.$search.'%" OR general_fee LIKE "%'.$search.'%" OR fee_category_name LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getInwardData($start,$length,$order_by,$sort_by,$search)
+    {
+    	$current_sessionID = $this->get_school_sessionid();
+    	if($this->session->userdata('schoolSessionData'))
+	    {
+	        $schoolSessionData = $this->session->userdata('schoolSessionData');
+	        $session_id = $schoolSessionData['session_name'];
+	    }
+	    else
+	    {
+	        $session_id = $current_sessionID;
+	    }
+    	$wherCon['a.transaction_status'] =  1;
+    	$wherCon['a.transaction_type'] =  0;
+    	$wherCon['a.transaction_session'] =  $session_id;
+        $this->db->select('SQL_CALC_FOUND_ROWS a.*,DATE_FORMAT(transaction_date, "%Y-%m-%d") as transaction_date,a.transaction_amount*a.transaction_amount_for_months as generalFee,a.late_fee_amount*a.transaction_amount_for_months as lateFee,a.transaction_amount_for_months as feeDuration,b.roll,b.name,b.class_id,b.email,b.class_sections_id,(select count(*) from transactions where payment_transaction_id=a.payment_transaction_id) as trans_count, (select sum((transaction_amount*transaction_amount_for_months)+(late_fee_amount*transaction_amount_for_months)) from transactions where payment_transaction_id=a.payment_transaction_id) as transaction_amount', FALSE)->from('transactions a')->join('student b', 'a.student_id=b.student_id')->where($wherCon);
+        if($search) {
+        	$this->db->having('(transaction_date LIKE "%'.$search.'%" OR a.payment_transaction_id LIKE "%'.$search.'%" OR transaction_amount LIKE "%'.$search.'%" OR generalFee LIKE "%'.$search.'%" OR lateFee LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR b.roll LIKE "%'.$search.'%" OR b.email LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getOutwardData($start,$length,$order_by,$sort_by,$search)
+    {
+    	$current_sessionID = $this->get_school_sessionid();
+    	if($this->session->userdata('schoolSessionData'))
+	    {
+	        $schoolSessionData = $this->session->userdata('schoolSessionData');
+	        $session_id = $schoolSessionData['session_name'];
+	    }
+	    else
+	    {
+	        $session_id = $current_sessionID;
+	    }
+    	$wherCon['a.transaction_status'] =  1;
+    	$wherCon['a.transaction_type'] =  1;
+    	$wherCon['a.transaction_session'] =  $session_id;
+        $this->db->select('SQL_CALC_FOUND_ROWS a.*,DATE_FORMAT(a.transaction_date, "%Y-%m-%d") as transaction_date,a.transaction_amount,b.roll,b.name,b.class_id,b.email,b.class_sections_id,(select count(*) from transactions where payment_transaction_id=a.payment_transaction_id) as trans_count', FALSE)->from('transactions a')->join('student b', 'a.student_id=b.student_id')->where($wherCon);
+        if($search) {
+        	$this->db->having('(transaction_date LIKE "%'.$search.'%" OR a.payment_transaction_id LIKE "%'.$search.'%" OR a.transaction_amount LIKE "%'.$search.'%" OR b.name LIKE "%'.$search.'%" OR b.roll LIKE "%'.$search.'%" OR b.email LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+    function getStudentLedgerData($start,$length,$order_by,$sort_by,$search,$searchByRoll=null,$start_date=null,$end_date=null)
+    {
+    	$current_sessionID = $this->get_school_sessionid();
+    	if($this->session->userdata('schoolSessionData'))
+	    {
+	        $schoolSessionData = $this->session->userdata('schoolSessionData');
+	        $session_id = $schoolSessionData['session_name'];
+	    }
+	    else
+	    {
+	        $session_id = $current_sessionID;
+	    }
+	    if($searchByRoll!=''){
+    		$wherCon['a.student_id'] = $searchByRoll;
+    	}
+    	if($start_date!='' && $end_date!=''){
+    		
+    		$wherCon['DATE(transaction_date)>='] = $start_date;
+    		$wherCon['DATE(transaction_date)<='] = $end_date;
+    	}
+    	$wherCon['a.transaction_status'] =  1;
+    	$wherCon['a.transaction_session'] =  $session_id;
+        $this->db->select('SQL_CALC_FOUND_ROWS a.*,DATE_FORMAT(transaction_date, "%Y-%m-%d") as transaction_date,a.transaction_amount as outward_amount,(select sum((transaction_amount*transaction_amount_for_months)+(late_fee_amount*transaction_amount_for_months)) from transactions where payment_transaction_id=a.payment_transaction_id) as transaction_amount,a.transaction_amount*a.transaction_amount_for_months as generalFee,a.transaction_amount_for_months as feeDuration,a.late_fee_amount*a.transaction_amount_for_months as lateFee,(select count(*) from transactions where payment_transaction_id=a.payment_transaction_id) as trans_count ', FALSE)->from('transactions a')->join('student b', 'a.student_id=b.student_id')->where($wherCon);
+        if($search) {
+        	$this->db->having('(transaction_date LIKE "%'.$search.'%" OR a.payment_transaction_id LIKE "%'.$search.'%" OR transaction_amount LIKE "%'.$search.'%" OR generalFee LIKE "%'.$search.'%" OR lateFee LIKE "%'.$search.'%" OR outward_amount LIKE "%'.$search.'%")', null, false);
+        }
+        $this->db->order_by($order_by, $sort_by)
+        ->limit($length, $start);
+        $query =  $this->db->get();
+        $result['data'] = $query->result_object();
+        $query = $this->db->query('SELECT FOUND_ROWS() AS Count');
+        $result['total_result'] = $query->row()->Count;
+        return $result;
+    }
+}
+

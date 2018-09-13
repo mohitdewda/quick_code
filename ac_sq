@@ -1,0 +1,69 @@
+-- Adminer 4.6.2 MySQL dump
+
+SET NAMES utf8;
+SET time_zone = '+00:00';
+SET foreign_key_checks = 0;
+SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+
+DROP TABLE IF EXISTS `activities`;
+CREATE TABLE `activities` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `activity_by_user_id` int(11) DEFAULT '0',
+  `activity_for_user_id` int(11) DEFAULT '0',
+  `listing_id` int(11) unsigned DEFAULT NULL,
+  `listing_sales_status_id` int(10) unsigned DEFAULT NULL,
+  `listing_agent_id` int(10) unsigned DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL,
+  `notification_type_id` int(11) DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0-not read, 1-read',
+  `detail` text,
+  `notification_detail` text,
+  `is_read_notification` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0-not read, 1-read',
+  `call_log_type` tinyint(2) DEFAULT '1' COMMENT '0 : incoming, 1 : outgoing',
+  `call_log_datetime` varchar(20) DEFAULT NULL,
+  `call_log_notes` text,
+  `ip_address` varchar(50) NOT NULL,
+  `created_at` varchar(50) NOT NULL,
+  `updated_at` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `notification_type_id` (`notification_type_id`),
+  KEY `listing_id` (`listing_id`),
+  KEY `listing_sales_status_id` (`listing_sales_status_id`),
+  CONSTRAINT `activities_ibfk_1` FOREIGN KEY (`notification_type_id`) REFERENCES `notification_types` (`id`),
+  CONSTRAINT `activities_ibfk_2` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`),
+  CONSTRAINT `activities_ibfk_3` FOREIGN KEY (`listing_sales_status_id`) REFERENCES `listing_sales_statuses` (`id`),
+  CONSTRAINT `fk_listing_id` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`),
+  CONSTRAINT `fk_listing_sales_status_id` FOREIGN KEY (`listing_sales_status_id`) REFERENCES `listing_sales_statuses` (`id`),
+  CONSTRAINT `fk_notification_type_id` FOREIGN KEY (`notification_type_id`) REFERENCES `notification_types` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+TRUNCATE `activities`;
+INSERT INTO `activities` (`id`, `activity_by_user_id`, `activity_for_user_id`, `listing_id`, `listing_sales_status_id`, `listing_agent_id`, `type`, `notification_type_id`, `is_read`, `detail`, `notification_detail`, `is_read_notification`, `call_log_type`, `call_log_datetime`, `call_log_notes`, `ip_address`, `created_at`, `updated_at`) VALUES
+(1,	102,	99,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746736',	NULL),
+(2,	102,	41,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746736',	NULL),
+(3,	102,	95,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746736',	NULL),
+(4,	102,	115,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746736',	NULL),
+(5,	102,	NULL,	4,	8,	102,	'Listing status changed',	NULL,	0,	'Listing sales status updated successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746736',	NULL),
+(6,	102,	101,	5,	4,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746977',	NULL),
+(7,	102,	41,	5,	4,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746977',	NULL),
+(8,	102,	95,	5,	4,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746977',	NULL),
+(9,	102,	115,	5,	4,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746977',	NULL),
+(10,	102,	NULL,	5,	4,	102,	'Listing status changed',	NULL,	0,	'Listing sales status updated successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536746977',	NULL),
+(11,	102,	99,	4,	7,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747011',	NULL),
+(12,	102,	41,	4,	7,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747011',	NULL),
+(13,	102,	95,	4,	7,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747011',	NULL),
+(14,	102,	115,	4,	7,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747011',	NULL),
+(15,	102,	NULL,	4,	7,	102,	'Listing status changed',	NULL,	0,	'Listing sales status updated successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747011',	NULL),
+(16,	102,	99,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747042',	NULL),
+(17,	102,	41,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747042',	NULL),
+(18,	102,	95,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747043',	NULL),
+(19,	102,	115,	4,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747043',	NULL),
+(20,	102,	NULL,	4,	8,	102,	'Listing status changed',	NULL,	0,	'Listing sales status updated successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536747043',	NULL),
+(21,	102,	101,	5,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536755187',	NULL),
+(22,	102,	41,	5,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536755187',	NULL),
+(23,	102,	95,	5,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536755187',	NULL),
+(24,	102,	115,	5,	8,	NULL,	NULL,	4,	0,	NULL,	'Listing sales status updated successfully!',	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536755187',	NULL),
+(25,	102,	NULL,	5,	8,	102,	'Listing status changed',	NULL,	0,	'Listing sales status updated successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536755187',	NULL),
+(26,	41,	41,	NULL,	NULL,	NULL,	'Loggedin',	NULL,	0,	'User Loggedin Successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536813363',	NULL);
+
+-- 2018-09-13 07:39:01

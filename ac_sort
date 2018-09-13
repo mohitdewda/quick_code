@@ -1,0 +1,225 @@
+<?php
+
+namespace App\Repository;
+
+use Illuminate\Support\Facades\Auth;
+use App\Activity;
+use App\Repository\Users;
+use App\Repository\Lisitngs;
+use App\Repository\Activities;
+use Illuminate\Support\Facades\DB;
+use App\User;
+
+class Performance extends BaseRepository
+{
+    public function model()
+    {
+        return Activity::class;
+    }
+    public function users() 
+    {
+        return app()->make(Users::class);
+    }
+    public function listings() 
+    {
+        return app()->make(Listings::class);
+    }
+    public function activities() 
+    {
+        return app()->make(Activities::class);
+    }
+    public function getUsersByRoles($roles, $columns = null)
+    {
+        return User::role($roles)->get($columns);
+    }
+    public function getUserEnrolledDate($agent_id)
+    {
+        $userInfo = $this->users()->findUserById($agent_id);
+        $dtr = date("m/d/Y", $userInfo->created_at ); 
+        $tm = date("h:i A" , $userInfo->created_at );
+        return (!empty($userInfo) && $userInfo->created_at!='' ? $dtr : 'NA');
+    }
+    public function timelineBetweenContactToClosing($agent_id)
+    {
+        $events = collect();
+        /*$result = Activity::select('activities.listing_sales_status_id', 'activities.created_at')
+        ->selectRaw('SEC_TO_TIME ( AVG ( TIMESTAMPDIFF ( SECOND, `created_at`,`created_at`))) as mohit')
+        ->where('activities.listing_agent_id', $agent_id)
+        ->where('activities.listing_id', '!=', '')
+        ->where('activities.listing_sales_status_id', '!=', '')
+        ->whereBetween('activities.listing_sales_status_id', [7,10])
+        ->orderBy('activities.created_at', 'desc')
+        //->groupBy('activities.listing_sales_status_id','activities.created_at')
+        ->get()
+        //->avg('created_at');
+        ->unique('listing_sales_status_id');
+
+        $count = 0;*/
+        /*foreach($result as $data){
+            if($data->listing_sales_status_id!=10){
+                $count++;
+            }else{
+                unset($result[$count]);
+            }
+        }*/
+        /*$events->push($result);
+        $flattenedEvents = $events->flatten();
+        $sortedEvents = $flattenedEvents->sortBy('id');
+        print_r($sortedEvents->all());die;
+        return $sortedEvents->all();*/
+
+        //$result = $result->groupBy('listing_id');
+        /*print_r($result);die;
+        return 0;*/
+
+        $result = Activity::join('listings', 'activities.listing_id', '=', 'listings.id')->select('activities.listing_id','activities.id','activities.created_at','activities.listing_sales_status_id','listing_agent_id')
+        ->where('listing_agent_id', $agent_id)
+        ->where('listing_id', '!=', '')
+        ->where('activities.listing_sales_status_id', '!=', '')
+        ->whereBetween('activities.listing_sales_status_id', [7,10])
+        ->orderBy('activities.id', 'desc')
+        ->get();
+
+        /*print_r($result);die;
+        $resultArray = [];
+        $count = 0;
+        foreach($result as $obj){
+            $key1 = array_search('model', array_column($resultArray, 'listing_sales_status_id'));
+            $key2 = array_search('model', array_column($resultArray, 'listings'));
+            $key3 = array_search('model', array_column($resultArray, 'listing_agent_id'));
+            if(!$key1 && !$key2 && !$key3){
+                $resultArray[$count] = $obj;
+                $count++;
+            }
+        }
+        return count($resultArray);*/
+
+        /*$resultArray = [];
+        $count = 0;
+        foreach($result as $key=>$value){
+            if (!in_array($line['listing_sales_status_id'], $resultArray)) {
+                $usedFruits[] = $line['name']; 
+                $newArray[$key] = $line; 
+            }
+        }*/
+
+        /*$arr = array(0 => array(id=>1,name=>"cat 1"),
+                     1 => array(id=>2,name=>"cat 2"),
+                     2 => array(id=>3,name=>"cat 1"));
+
+        print_r(search($arr, 'name', 'cat 1'));*/
+        $result = $result->toArray();
+        $count = 0;
+        $originalArray = array();
+        foreach ( $result AS $key => $line ) {
+            $pairs = array('listing_id' => $line['listing_id'], 'listing_sales_status_id' => $line['listing_sales_status_id']);
+            $originalArray[$count] = $this->multiSearch($result, $pairs);
+            /*$found = array();
+            foreach ($result as $aKey => $aVal) {
+                $coincidences = 0;
+                foreach ($pairs as $pKey => $pVal) {
+                    if (array_key_exists($pKey, $aVal) && $aVal[$pKey] == $pVal) {
+                        $coincidences++;
+                    }
+                }
+                if ($coincidences == count($pairs)) {
+                    $found[$aKey] = $aVal;
+                }
+            }
+
+            print_r($found);die;
+            return $found;*/
+        }
+        print_r($originalArray);die;
+    }
+    public function multiSearch(array $array, array $pairs)
+    {
+        $found = array();
+        foreach ($array as $aKey => $aVal) {
+            $coincidences = 0;
+            //$pairsCount = count($pairs);
+            foreach ($pairs as $pKey => $pVal) {
+                if (array_key_exists($pKey, $aVal) && $aVal[$pKey] == $pVal) {
+                    $coincidences++;
+                }
+            }
+            if ($coincidences == count($pairs)) {
+                $found[$aKey] = $aVal;
+            }
+        }
+
+        return $found;
+    }
+    function search($array, $key, $value)
+    {
+        $results = array();
+
+        if (is_array($array)) {
+            if (isset($array[$key]) && $array[$key] == $value) {
+                $results[] = $array;
+            }
+
+            foreach ($array as $subarray) {
+                $results = array_merge($results, search($subarray, $key, $value));
+            }
+        }
+
+        return $results;
+    }
+
+    public function getTotalDealsManagedAtSameTime($agent_id)
+    {
+        $result = Activity::join('listings', 'activities.listing_id', '=', 'listings.id')->select('activities.listing_id','activities.id','activities.created_at','activities.listing_sales_status_id')
+        ->where('listing_agent_id', $agent_id)
+        ->where('listing_id', '!=', '')
+        ->where('activities.listing_sales_status_id', '!=', '')
+        ->orderBy('activities.id', 'desc')
+        ->get()
+        ->unique('listing_id');
+
+        $count = 0;
+        foreach($result as $data){
+            if($data->listing_sales_status_id!=10){
+                $count++;
+            }else{
+                unset($result[$count]);
+            }
+        }
+        return $result;
+    }
+    public function highestCommissionEarnedByAgent($agent_id)
+    {
+        return 0;
+    }
+    public function longestPeriodByAgentBeforeClosingDate($totalDeals)
+    {
+        if(!empty($totalDeals)){
+            $totalDeals = $totalDeals->toArray();
+            $craetedAt = array_column($totalDeals, 'created_at', 'listing_id');
+            $longestListing = array_keys($craetedAt, min($craetedAt));
+            return $longestListing[0];
+        }
+        return false;
+    }
+    public function totalNumberOfInteractions($agent_id)
+    {
+        return 0;
+    }
+    public function getAgentPerformanceData($agent_id = null)
+    {
+        if($agent_id!=''){
+            $highestCommissionData = $this->highestCommissionEarnedByAgent($agent_id);
+            $averageTimelineData = $this->timelineBetweenContactToClosing($agent_id);
+            $agentEnrolledData = $this->getUserEnrolledDate($agent_id);
+            $totalDealsData = $this->getTotalDealsManagedAtSameTime($agent_id);
+            $totalDelasCount = count($totalDealsData);
+            $longestPeriodData = $this->longestPeriodByAgentBeforeClosingDate($totalDealsData);
+            $longestPeriodListingID = 'Listing ID : '.$longestPeriodData;
+            $totalInteractionsData = $this->totalNumberOfInteractions($agent_id);
+            if($agent_id!=''){
+                return ['agentEnrolledData' => $agentEnrolledData, 'averageTimelineData' => $averageTimelineData, 'totalDealsData' => $totalDelasCount, 'highestCommissionData' => $highestCommissionData, 'longestPeriodData' => $longestPeriodListingID, 'totalInteractionsData' => $totalInteractionsData];
+            }
+        }
+        return false;
+    }
+}

@@ -67,3 +67,5 @@ INSERT INTO `activities` (`id`, `activity_by_user_id`, `activity_for_user_id`, `
 (26,	41,	41,	NULL,	NULL,	NULL,	'Loggedin',	NULL,	0,	'User Loggedin Successfully!',	NULL,	0,	1,	NULL,	NULL,	'127.0.0.1',	'1536813363',	NULL);
 
 -- 2018-09-13 07:39:01
+
+https://photos.app.goo.gl/gPyzMtXUoCV5JeGp8
